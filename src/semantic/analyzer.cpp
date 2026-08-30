@@ -8,7 +8,7 @@ namespace { TypeRef t(const std::string& n){return TypeRef{n,false,{}};} bool ha
 void Analyzer::error(const std::string&m,SourceLocation l){errors.push_back({m,l,false});}
 void Analyzer::warning(const std::string&m,SourceLocation l){errors.push_back({m,l,true});}
 Analyzer::Scope* Analyzer::bindingScope(const std::string& n) const {for(auto s=scope;s;s=s->parent)if(s->types.contains(n))return s.get();return nullptr;}
-bool Analyzer::defined(const std::string& n) const {return bindingScope(n)!=nullptr||functions.contains(n)||classes.contains(n)||n=="print"||n=="typeOf";}
+bool Analyzer::defined(const std::string& n) const {return bindingScope(n)!=nullptr||functions.contains(n)||classes.contains(n)||n=="print"||n=="typeOf"||n=="collectGarbage"||n=="gcStats";}
 bool Analyzer::compatible(const TypeRef&e,const TypeRef&a){if(e.name=="any"||a.name=="any")return true;if(a.name=="null")return e.nullable||e.name=="null"||std::any_of(e.unionTypes.begin(),e.unionTypes.end(),[](const auto&x){return x.name=="null";});if(e.name=="num"&&(a.name=="int"||a.name=="float"))return true;if(e.name==a.name&&(!a.nullable||e.nullable||e.name=="null"))return true;for(auto&u:e.unionTypes)if(compatible(u,a))return true;return false;}
 TypeRef Analyzer::merge(const TypeRef&a,const TypeRef&b){if(compatible(a,b))return a;if(compatible(b,a))return b;TypeRef r{"union",false,{a,b}};return r;}
 std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr>& p){errors.clear();scope=std::make_shared<Scope>();functions.clear();classes.clear();for(auto&s:p){if(auto f=std::get_if<FunctionDecl>(&s->node))functions[f->name]=*f;if(auto c=std::get_if<ClassDecl>(&s->node))classes[c->name]=*c;}for(auto&s:p)stmt(s);return errors;}
