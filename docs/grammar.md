@@ -22,8 +22,10 @@ return        ::= "return" expression? ";" ;
 type          ::= IDENT | primitive ("?")? ("|" type)* ;
 expression    ::= assignment ;
 assignment    ::= logic-or ("=" assignment)? ;
-primary       ::= literal | IDENT | "self" | "super" | "new" IDENT "(" arguments? ")"
+primary       ::= literal | array | IDENT | "self" | "super" | "new" IDENT "(" arguments? ")"
                 | "(" expression ")" | object | if-expression | match ;
+array         ::= "[" (expression ("," expression)*)? "]" ;
+postfix       ::= primary ("(" arguments? ")" | "." IDENT | "[" expression "]")* ;
 match         ::= "match" "(" expression ")" "{" (literal | "_") "=>" expression ";"* "}" ;
 ```
 

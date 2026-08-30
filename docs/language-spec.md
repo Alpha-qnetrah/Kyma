@@ -14,7 +14,7 @@ set title = "Kyma";
 let maybe: str? = null;
 ```
 
-Objects are closed: an assignment to a field not present in the object/class shape is rejected by the runtime. `null` is a value and `void` describes absence of a function result.
+Objects are closed: an assignment to a field not present in the object/class shape is rejected by the runtime. Arrays use `[a, b]`, zero-based integer indexing, and are mutable reference values; `len`, `push`, and `pop` are standard-library operations. `null` is a value and `void` describes absence of a function result.
 
 ## Functions and control flow
 

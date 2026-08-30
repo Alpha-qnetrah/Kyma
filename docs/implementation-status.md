@@ -11,6 +11,9 @@ This is an honest v0.1 boundary, not a claim that every future-language feature 
 | CLI/REPL | implemented |
 | Classes, init, inheritance, self/super | implemented baseline |
 | Interfaces | declaration parsing only |
+| Arrays / closed objects | implemented baseline |
+| Files, processes, basic HTTP | implemented native standard library |
+| HTTPS/TLS and async networking | future |
 | Traits/generics | reserved design surface |
 | Imports/exports | architecture documented; not yet executable |
 | Bytecode VM | future |

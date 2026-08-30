@@ -10,6 +10,6 @@ private:
   struct Flow { enum Kind { None, Return, Break, Continue }; Kind kind{None}; Value value; std::string label; };
   Flow flow;
   Value eval(const ExprPtr&); void exec(const StmtPtr&); void execBlock(const BlockStmt&, std::shared_ptr<Environment>);
-  Value binary(TokenKind, const Value&, const Value&); Value call(const Call&, const ExprPtr&); Value getMember(const Member&); void setMember(const ExprPtr&, const std::string&, Value);
+  Value binary(TokenKind, const Value&, const Value&); Value call(const Call&, const ExprPtr&); Value getMember(const Member&); void setMember(const ExprPtr&, const std::string&, Value); void setIndex(const ExprPtr&, const ExprPtr&, Value);
 };
 }

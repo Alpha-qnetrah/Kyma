@@ -5,6 +5,7 @@
 
 namespace kyma {
 struct Object;
+struct Array;
 class Environment;
 
 // Tracing heap for runtime objects. Object fields are non-owning Value edges;
@@ -14,14 +15,16 @@ public:
   Heap() = default;
   ~Heap();
   Object* allocate();
+  Array* allocateArray();
   void collect(const std::vector<Environment*>& roots);
   void maybeCollect(const std::vector<Environment*>& roots);
   void setThreshold(std::size_t threshold);
   std::size_t allocated() const { return allocatedCount; }
-  std::size_t live() const { return objects.size(); }
+  std::size_t live() const { return objects.size() + arrays.size(); }
   std::size_t collections() const { return collectionCount; }
 private:
   std::vector<std::unique_ptr<Object>> objects;
+  std::vector<std::unique_ptr<Array>> arrays;
   std::size_t allocatedCount{0};
   std::size_t collectionCount{0};
   std::size_t nextThreshold{256};

@@ -17,13 +17,15 @@ struct Binary { ExprPtr left; TokenKind op; ExprPtr right; };
 struct Assign { ExprPtr target; ExprPtr value; };
 struct Call { ExprPtr callee; std::vector<ExprPtr> args; };
 struct Member { ExprPtr object; std::string name; };
+struct Index { ExprPtr object; ExprPtr index; };
+struct ArrayExpr { std::vector<ExprPtr> elements; };
 struct NewExpr { std::string className; std::vector<ExprPtr> args; };
 struct ObjectField { std::string name; ExprPtr value; };
 struct ObjectExpr { std::vector<ObjectField> fields; };
 struct IfExpr { ExprPtr condition; StmtPtr thenBranch; StmtPtr elseBranch; };
 struct MatchArm { ExprPtr pattern; ExprPtr value; bool wildcard{false}; };
 struct MatchExpr { ExprPtr subject; std::vector<MatchArm> arms; };
-struct Expr { using Node = std::variant<Literal, Variable, SelfExpr, SuperExpr, Unary, Binary, Assign, Call, Member, NewExpr, ObjectExpr, IfExpr, MatchExpr>; Node node; SourceLocation location; };
+struct Expr { using Node = std::variant<Literal, Variable, SelfExpr, SuperExpr, Unary, Binary, Assign, Call, Member, Index, ArrayExpr, NewExpr, ObjectExpr, IfExpr, MatchExpr>; Node node; SourceLocation location; };
 
 struct VarDecl { bool mutableBinding; std::string name; TypeRef type; bool hasType{false}; ExprPtr initializer; };
 struct ExprStmt { ExprPtr expression; };

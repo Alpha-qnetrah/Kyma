@@ -12,6 +12,18 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
+The repository also provides a terminal-friendly workflow:
+
+```sh
+make                 # configure and build Debug
+make test
+make install         # installs to ~/.local/bin/kyma
+kyma examples/hello.kyma
+make run FILE=examples/hello.kyma
+```
+
+Set `PREFIX=/usr/local` when a system-wide installation is appropriate.
+
 Sanitizers (supported by Apple Clang):
 
 ```sh
