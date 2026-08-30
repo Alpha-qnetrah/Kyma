@@ -10,11 +10,23 @@ option(KYMA_ENABLE_SANITIZERS "Enable AddressSanitizer and UBSan" OFF)
 
 add_library(kyma_lib
     src/lexer/lexer.cpp
+    src/lexer/keywords.cpp
+    src/lexer/words.cpp
+    src/types/types.cpp
     src/parser/parser.cpp
+    src/parser/expressions.cpp
     src/semantic/analyzer.cpp
-    src/runtime/runtime.cpp
+    src/semantic/type_checker.cpp
+    src/semantic/behavior.cpp
+    src/semantic/interfaces.cpp
+    src/semantic/validation.cpp
+    src/runtime/values.cpp
+    src/runtime/environment.cpp
+    src/runtime/functions.cpp
     src/runtime/gc.cpp
+    src/stdlib/stdlib.cpp
     src/interpreter/interpreter.cpp
+    src/interpreter/expressions.cpp
 )
 target_include_directories(kyma_lib PUBLIC include)
 target_compile_features(kyma_lib PUBLIC cxx_std_23)
@@ -29,9 +41,17 @@ target_link_libraries(kyma PRIVATE kyma_lib)
 
 if(KYMA_BUILD_TESTS)
   enable_testing()
-  add_executable(kyma_tests tests/test_kyma.cpp)
-  target_link_libraries(kyma_tests PRIVATE kyma_lib)
-  add_test(NAME kyma_tests COMMAND kyma_tests)
+  function(add_kyma_test name source)
+    add_executable(${name} ${source})
+    target_link_libraries(${name} PRIVATE kyma_lib)
+    add_test(NAME ${name} COMMAND ${name})
+  endfunction()
+  add_kyma_test(kyma_tests tests/test_kyma.cpp)
+  add_kyma_test(kyma_lexer_tests tests/lexer/test_lexer.cpp)
+  add_kyma_test(kyma_parser_tests tests/parser/test_parser.cpp)
+  add_kyma_test(kyma_semantic_tests tests/semantic/test_semantic.cpp)
+  add_kyma_test(kyma_runtime_tests tests/runtime/test_runtime.cpp)
+  add_kyma_test(kyma_stdlib_tests tests/stdlib/test_stdlib.cpp)
 endif()
 
 include(GNUInstallDirs)

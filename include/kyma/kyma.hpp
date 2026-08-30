@@ -1,5 +1,9 @@
 #pragma once
 #include "kyma/analyzer.hpp"
+#include "kyma/interfaces.hpp"
 #include "kyma/interpreter.hpp"
 #include "kyma/lexer.hpp"
 #include "kyma/parser.hpp"
+#include "kyma/stdlib.hpp"
+#include "kyma/validation.hpp"
+#include "kyma/words.hpp"

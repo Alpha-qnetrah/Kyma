@@ -1,0 +1,22 @@
+{
+  "name": "Kyma",
+  "scopeName": "source.kyma",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#functions" },
+    { "include": "#operators" }
+  ],
+  "repository": {
+    "comments": { "patterns": [{ "name": "comment.line.double-slash.kyma", "match": "//.*$" }, { "name": "comment.block.kyma", "begin": "/\\*", "end": "\\*/" }] },
+    "strings": { "patterns": [{ "name": "string.quoted.double.kyma", "begin": "\"", "end": "\"", "patterns": [{ "name": "constant.character.escape.kyma", "match": "\\\\." }] }, { "name": "constant.character.kyma", "begin": "'", "end": "'" }] },
+    "numbers": { "patterns": [{ "name": "constant.numeric.float.kyma", "match": "\\b[0-9]+\\.[0-9]+\\b" }, { "name": "constant.numeric.integer.kyma", "match": "\\b[0-9]+\\b" }] },
+    "keywords": { "patterns": [{ "name": "keyword.control.kyma", "match": "\\b(let|set|func|return|if|else|while|loop|break|continue|match|try|catch|new|class|extends|init|self|super|intf|trait)\\b" }, { "name": "storage.modifier.kyma", "match": "\\b(public|private|protected|static|override|final|abstract)\\b" }, { "name": "constant.language.kyma", "match": "\\b(true|false|null)\\b" }] },
+    "types": { "patterns": [{ "name": "support.type.primitive.kyma", "match": "\\b(int|float|num|str|char|bool|void|any)\\b" }] },
+    "functions": { "patterns": [{ "name": "entity.name.function.kyma", "match": "\\b[A-Za-z_][A-Za-z0-9_]*(?=\\s*\\()" }] },
+    "operators": { "patterns": [{ "name": "keyword.operator.kyma", "match": "(=>|==|!=|<=|>=|&&|\\|\\||[+*/%!=<>?-])" }] }
+  }
+}

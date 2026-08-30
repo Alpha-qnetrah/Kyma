@@ -1,46 +1,233 @@
 #include "kyma/analyzer.hpp"
+#include "kyma/behavior.hpp"
 #include <algorithm>
 #include <map>
 
 namespace kyma {
-std::string TypeRef::str() const {std::string s=name;if(nullable)s+="?";for(auto&u:unionTypes)s+=" | "+u.str();return s;}
-namespace { TypeRef t(const std::string& n){return TypeRef{n,false,{}};} bool hasMod(const std::vector<std::string>&m,const std::string&s){return std::find(m.begin(),m.end(),s)!=m.end();} }
-void Analyzer::error(const std::string&m,SourceLocation l){errors.push_back({m,l,false});}
-void Analyzer::warning(const std::string&m,SourceLocation l){errors.push_back({m,l,true});}
-Analyzer::Scope* Analyzer::bindingScope(const std::string& n) const {for(auto s=scope;s;s=s->parent)if(s->types.contains(n))return s.get();return nullptr;}
-bool Analyzer::defined(const std::string& n) const {return bindingScope(n)!=nullptr||functions.contains(n)||classes.contains(n)||n=="print"||n=="typeOf"||n=="collectGarbage"||n=="gcStats"||n=="len"||n=="push"||n=="pop"||n=="keys"||n=="readFile"||n=="writeFile"||n=="processRun"||n=="processEnv"||n=="sleep"||n=="httpGet";}
-bool Analyzer::compatible(const TypeRef&e,const TypeRef&a){if(e.name=="any"||a.name=="any")return true;if(a.name=="null")return e.nullable||e.name=="null"||std::any_of(e.unionTypes.begin(),e.unionTypes.end(),[](const auto&x){return x.name=="null";});if(e.name=="num"&&(a.name=="int"||a.name=="float"))return true;if(e.name==a.name&&(!a.nullable||e.nullable||e.name=="null"))return true;for(auto&u:e.unionTypes)if(compatible(u,a))return true;return false;}
-TypeRef Analyzer::merge(const TypeRef&a,const TypeRef&b){if(compatible(a,b))return a;if(compatible(b,a))return b;TypeRef r{"union",false,{a,b}};return r;}
-std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr>& p){errors.clear();scope=std::make_shared<Scope>();functions.clear();classes.clear();for(auto&s:p){if(auto f=std::get_if<FunctionDecl>(&s->node))functions[f->name]=*f;if(auto c=std::get_if<ClassDecl>(&s->node))classes[c->name]=*c;}for(auto&s:p)stmt(s);return errors;}
-void Analyzer::stmt(const StmtPtr&s){std::visit([this](const auto&n){using T=std::decay_t<decltype(n)>;
- if constexpr(std::is_same_v<T,VarDecl>){for(auto p=scope->parent;p;p=p->parent)if(p->types.contains(n.name)){warning("binding '"+n.name+"' shadows an outer binding",SourceLocation{});break;}if(n.initializer){auto a=expr(n.initializer);if(n.hasType&&!compatible(n.type,a))error("initializer of '"+n.name+"' has type "+a.str()+", expected "+n.type.str(),n.initializer->location);scope->types[n.name]=n.hasType?n.type:a;scope->mutableBindings[n.name]=n.mutableBinding;}else{if(n.type.name!="any")error("binding '"+n.name+"' needs an initializer (or explicit any)",{1,1});scope->types[n.name]=n.type;scope->mutableBindings[n.name]=n.mutableBinding;}}
- else if constexpr(std::is_same_v<T,ExprStmt>)expr(n.expression);
- else if constexpr(std::is_same_v<T,BlockStmt>){auto old=scope;scope=std::make_shared<Scope>();scope->parent=old;for(auto&x:n.statements)stmt(x);if(n.tail)expr(n.tail);scope=old;}
- else if constexpr(std::is_same_v<T,IfStmt>){auto c=expr(n.condition);if(c.name!="bool"&&c.name!="any")error("if condition must be bool",n.condition->location);stmt(n.thenBranch);if(n.elseBranch)stmt(n.elseBranch);}
- else if constexpr(std::is_same_v<T,WhileStmt>){expr(n.condition);stmt(n.body);}
- else if constexpr(std::is_same_v<T,LoopStmt>){if(n.initializer)stmt(n.initializer);if(n.condition)expr(n.condition);if(n.increment)expr(n.increment);stmt(n.body);}
- else if constexpr(std::is_same_v<T,BreakStmt>||std::is_same_v<T,ContinueStmt>){ }
- else if constexpr(std::is_same_v<T,ReturnStmt>){if(!inFunction)error("return must be inside a function",n.value?n.value->location:SourceLocation{});TypeRef actual=n.value?expr(n.value):t("void");if(inFunction&&!compatible(currentReturn,actual))error("return type "+actual.str()+" does not satisfy "+currentReturn.str(),n.value?n.value->location:SourceLocation{});}
- else if constexpr(std::is_same_v<T,FunctionDecl>){auto old=scope;auto oldReturn=currentReturn;bool oldIn=inFunction;scope=std::make_shared<Scope>();scope->parent=old;for(auto&p:n.params){scope->types[p.name]=p.type;scope->mutableBindings[p.name]=false;}currentReturn=n.hasReturnType?n.returnType:t("any");inFunction=true;stmt(n.body);if(n.hasReturnType&&n.returnType.name!="void"&&!alwaysReturns(n.body))error("function '"+n.name+"' can reach its end without returning "+n.returnType.str(),SourceLocation{});scope=old;currentReturn=oldReturn;inFunction=oldIn;}
- else if constexpr(std::is_same_v<T,ClassDecl>){if(!n.parent.empty()&&classes.contains(n.parent)){auto&base=classes[n.parent];if(hasMod(base.modifiers,"final"))error("cannot extend final class '"+n.parent+"'",SourceLocation{});for(auto&m:n.methods){auto inherited=std::find_if(base.methods.begin(),base.methods.end(),[&](const auto&x){return x.name==m.name;});if(hasMod(m.modifiers,"override")&&inherited==base.methods.end())error("method '"+m.name+"' is marked override but no inherited method exists",SourceLocation{});if(inherited!=base.methods.end()&&!hasMod(m.modifiers,"override")&&m.name!="init")error("overriding method '"+m.name+"' requires the override modifier",SourceLocation{});if(inherited!=base.methods.end()&&hasMod(inherited->modifiers,"final"))error("cannot override final method '"+m.name+"'",SourceLocation{});if(inherited!=base.methods.end()&&m.hasReturnType&&inherited->hasReturnType&&!compatible(inherited->returnType,m.returnType))error("override return type for '"+m.name+"' is incompatible",SourceLocation{});}}for(auto&m:n.methods){auto old=scope;auto oldReturn=currentReturn;bool oldIn=inFunction;scope=std::make_shared<Scope>();scope->parent=old;scope->types["self"]=t(n.name);scope->mutableBindings["self"]=false;for(auto&f:n.fields){scope->types[f.name]=f.type;scope->mutableBindings[f.name]=true;}for(auto&p:m.params){scope->types[p.name]=p.type;scope->mutableBindings[p.name]=false;}currentReturn=m.hasReturnType?m.returnType:t("any");inFunction=true;stmt(m.body);if(m.hasReturnType&&m.returnType.name!="void"&&!alwaysReturns(m.body))error("method '"+m.name+"' can reach its end without returning "+m.returnType.str(),SourceLocation{});scope=old;currentReturn=oldReturn;inFunction=oldIn;}if(!n.parent.empty()&&!classes.contains(n.parent))error("unknown parent class '"+n.parent+"'",{1,1});}
- else if constexpr(std::is_same_v<T,InterfaceDecl>){}
- },s->node);}
-bool Analyzer::alwaysReturns(const StmtPtr& s) const { if(!s) return false; if(std::holds_alternative<ReturnStmt>(s->node)) return true; if(auto b=std::get_if<BlockStmt>(&s->node)){for(auto&x:b->statements)if(alwaysReturns(x))return true;return false;} if(auto i=std::get_if<IfStmt>(&s->node))return i->elseBranch&&alwaysReturns(i->thenBranch)&&alwaysReturns(i->elseBranch); return false; }
-TypeRef Analyzer::expr(const ExprPtr&e){return std::visit([this,&e](const auto&n)->TypeRef{using T=std::decay_t<decltype(n)>;
- if constexpr(std::is_same_v<T,Literal>){switch(n.kind){case Literal::Kind::Null:return t("null");case Literal::Kind::Bool:return t("bool");case Literal::Kind::Int:return t("int");case Literal::Kind::Float:return t("float");case Literal::Kind::String:return t("str");case Literal::Kind::Char:return t("char");}}
- else if constexpr(std::is_same_v<T,Variable>){if(!defined(n.name)&&!interactive)error("undefined name '"+n.name+"'",e->location);if(auto bs=bindingScope(n.name))return bs->types[n.name];if(functions.contains(n.name))return t("func");if(classes.contains(n.name))return t("class");return t("any");}
- else if constexpr(std::is_same_v<T,SelfExpr>)return t("object"); else if constexpr(std::is_same_v<T,SuperExpr>)return t("object");
- else if constexpr(std::is_same_v<T,Unary>){auto x=expr(n.right);if(n.op==TokenKind::Bang)return t("bool");if(x.name!="int"&&x.name!="float"&&x.name!="num"&&x.name!="any")error("unary '-' requires a numeric operand",e->location);return x;}
- else if constexpr(std::is_same_v<T,Binary>){auto a=expr(n.left),b=expr(n.right);if(n.op==TokenKind::EqualEqual||n.op==TokenKind::BangEqual||n.op==TokenKind::AndAnd||n.op==TokenKind::OrOr||n.op==TokenKind::Less||n.op==TokenKind::LessEqual||n.op==TokenKind::Greater||n.op==TokenKind::GreaterEqual)return t("bool");if(n.op==TokenKind::Plus&&(a.name=="str"||b.name=="str"))return t("str");if(a.name=="any"||b.name=="any")return t("any");if((a.name=="int"||a.name=="float"||a.name=="num"||a.name=="any")&&(b.name=="int"||b.name=="float"||b.name=="num"||b.name=="any"))return (a.name=="float"||b.name=="float")?t("float"):(a.name=="int"&&b.name=="int"?t("int"):t("num"));error("operator requires compatible operands",e->location);return t("any");}
- else if constexpr(std::is_same_v<T,Assign>){auto a=expr(n.target),b=expr(n.value);if(auto v=std::get_if<Variable>(&n.target->node)){if(auto bs=bindingScope(v->name)){if(!bs->mutableBindings[v->name])error("cannot assign to immutable binding '"+v->name+"'",e->location);if(!compatible(bs->types[v->name],b))error("cannot assign "+b.str()+" to "+bs->types[v->name].str(),e->location);}}else if(!std::holds_alternative<Member>(n.target->node)&&!std::holds_alternative<Index>(n.target->node))error("invalid assignment target",e->location);return a;}
- else if constexpr(std::is_same_v<T,Call>){auto c=expr(n.callee);for(auto&a:n.args)expr(a);if(auto v=std::get_if<Variable>(&n.callee->node);v&&functions.contains(v->name)){auto&f=functions[v->name];if(f.params.size()!=n.args.size())error("wrong number of arguments to '"+v->name+"'",e->location);for(size_t i=0;i<std::min(f.params.size(),n.args.size());++i){auto at=expr(n.args[i]);if(!compatible(f.params[i].type,at))error("argument "+std::to_string(i+1)+" to '"+v->name+"' has type "+at.str()+", expected "+f.params[i].type.str(),e->location);}return f.hasReturnType?f.returnType:t("any");}return t("any");}
- else if constexpr(std::is_same_v<T,Member>){expr(n.object);return t("any");}
- else if constexpr(std::is_same_v<T,Index>){auto object=expr(n.object);auto index=expr(n.index);if(index.name!="int"&&index.name!="any")error("array index must be int",e->location);if(object.name!="array"&&object.name!="any")error("indexing requires an array",e->location);return t("any");}
- else if constexpr(std::is_same_v<T,ArrayExpr>){for(auto&element:n.elements)expr(element);return t("array");}
- else if constexpr(std::is_same_v<T,NewExpr>){for(auto&a:n.args)expr(a);if(!classes.contains(n.className))error("unknown class '"+n.className+"'",e->location);return t(n.className);}
- else if constexpr(std::is_same_v<T,ObjectExpr>){for(auto&f:n.fields)expr(f.value);return t("object");}
- else if constexpr(std::is_same_v<T,IfExpr>){auto c=expr(n.condition);if(c.name!="bool"&&c.name!="any")error("if condition must be bool",e->location);auto a=std::get<BlockStmt>(n.thenBranch->node).tail?expr(std::get<BlockStmt>(n.thenBranch->node).tail):t("void");auto b=std::get<BlockStmt>(n.elseBranch->node).tail?expr(std::get<BlockStmt>(n.elseBranch->node).tail):t("void");return merge(a,b);}
- else if constexpr(std::is_same_v<T,MatchExpr>){expr(n.subject);TypeRef r=t("void");bool first=true;for(auto&a:n.arms){if(!a.wildcard)expr(a.pattern);auto arm=expr(a.value);if(first){r=arm;first=false;}else r=merge(r,arm);}return r;}
- else return t("any");
- },e->node);}
+namespace {
+TypeRef t(const std::string &n) { return TypeRef{n, false, {}}; }
+} // namespace
+void Analyzer::error(const std::string &m, SourceLocation l) { errors.push_back({m, l, false}); }
+void Analyzer::warning(const std::string &m, SourceLocation l) { errors.push_back({m, l, true}); }
+Analyzer::Scope *Analyzer::bindingScope(const std::string &n) const {
+  for (auto s = scope; s; s = s->parent)
+    if (s->types.contains(n))
+      return s.get();
+  return nullptr;
 }
+bool Analyzer::defined(const std::string &n) const {
+  return bindingScope(n) != nullptr || functions.contains(n) || classes.contains(n) ||
+         n == "print" || n == "typeOf" || n == "collectGarbage" || n == "gcStats" || n == "len" ||
+         n == "push" || n == "pop" || n == "keys" || n == "readFile" || n == "writeFile" ||
+         n == "processRun" || n == "processEnv" || n == "sleep" || n == "httpGet" || n == "fetch" ||
+         n == "build" || n == "wait" || n == "log" || n == "logColor" || n == "console" ||
+         n == "error";
+}
+bool Analyzer::compatible(const TypeRef &e, const TypeRef &a) {
+  if (e.name == "any" || a.name == "any")
+    return true;
+  if (a.name == "null")
+    return e.nullable || e.name == "null" ||
+           std::any_of(e.unionTypes.begin(), e.unionTypes.end(),
+                       [](const auto &x) { return x.name == "null"; });
+  if (e.name == "num" && (a.name == "int" || a.name == "float"))
+    return true;
+  if (e.name == a.name && (!a.nullable || e.nullable || e.name == "null"))
+    return true;
+  for (auto &u : e.unionTypes)
+    if (compatible(u, a))
+      return true;
+  return false;
+}
+TypeRef Analyzer::merge(const TypeRef &a, const TypeRef &b) {
+  if (compatible(a, b))
+    return a;
+  if (compatible(b, a))
+    return b;
+  TypeRef r{"union", false, {a, b}};
+  return r;
+}
+std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
+  errors.clear();
+  scope = std::make_shared<Scope>();
+  functions.clear();
+  classes.clear();
+  interfaces.clear();
+  for (auto &s : p) {
+    if (auto f = std::get_if<FunctionDecl>(&s->node))
+      functions[f->name] = *f;
+    if (auto c = std::get_if<ClassDecl>(&s->node))
+      classes[c->name] = *c;
+    if (auto i = std::get_if<InterfaceDecl>(&s->node)) {
+      if (!interfaces.declareInterface(*i))
+        error("interface '" + i->name + "' is already declared", s->location);
+    }
+  }
+  for (auto &s : p)
+    stmt(s);
+  return errors;
+}
+void Analyzer::stmt(const StmtPtr &s) {
+  std::visit(
+      [this](const auto &n) {
+        using T = std::decay_t<decltype(n)>;
+        if constexpr (std::is_same_v<T, VarDecl>) {
+          for (auto p = scope->parent; p; p = p->parent)
+            if (p->types.contains(n.name)) {
+              warning("binding '" + n.name + "' shadows an outer binding", SourceLocation{});
+              break;
+            }
+          if (n.initializer) {
+            auto a = expr(n.initializer);
+            if (n.hasType && !compatible(n.type, a))
+              error("initializer of '" + n.name + "' has type " + a.str() + ", expected " +
+                        n.type.str(),
+                    n.initializer->location);
+            scope->types[n.name] = n.hasType ? n.type : a;
+            scope->mutableBindings[n.name] = n.mutableBinding;
+          } else {
+            if (n.type.name != "any")
+              error("binding '" + n.name + "' needs an initializer (or explicit any)", {1, 1});
+            scope->types[n.name] = n.type;
+            scope->mutableBindings[n.name] = n.mutableBinding;
+          }
+        } else if constexpr (std::is_same_v<T, ExprStmt>)
+          expr(n.expression);
+        else if constexpr (std::is_same_v<T, BlockStmt>) {
+          auto old = scope;
+          scope = std::make_shared<Scope>();
+          scope->parent = old;
+          for (auto &x : n.statements)
+            stmt(x);
+          if (n.tail)
+            expr(n.tail);
+          scope = old;
+        } else if constexpr (std::is_same_v<T, IfStmt>) {
+          auto c = expr(n.condition);
+          if (c.name != "bool" && c.name != "any")
+            error("if condition must be bool", n.condition->location);
+          stmt(n.thenBranch);
+          if (n.elseBranch)
+            stmt(n.elseBranch);
+        } else if constexpr (std::is_same_v<T, WhileStmt>) {
+          expr(n.condition);
+          stmt(n.body);
+        } else if constexpr (std::is_same_v<T, LoopStmt>) {
+          if (n.initializer)
+            stmt(n.initializer);
+          if (n.condition)
+            expr(n.condition);
+          if (n.increment)
+            expr(n.increment);
+          stmt(n.body);
+        } else if constexpr (std::is_same_v<T, TryStmt>) {
+          stmt(n.tryBranch);
+          auto old = scope;
+          scope = std::make_shared<Scope>();
+          scope->parent = old;
+          scope->types[n.catchName] = t("str");
+          scope->mutableBindings[n.catchName] = false;
+          stmt(n.catchBranch);
+          scope = old;
+        } else if constexpr (std::is_same_v<T, BreakStmt> || std::is_same_v<T, ContinueStmt>) {
+        } else if constexpr (std::is_same_v<T, ReturnStmt>) {
+          if (!inFunction)
+            error("return must be inside a function",
+                  n.value ? n.value->location : SourceLocation{});
+          TypeRef actual = n.value ? expr(n.value) : t("void");
+          if (inFunction && !compatible(currentReturn, actual))
+            error("return type " + actual.str() + " does not satisfy " + currentReturn.str(),
+                  n.value ? n.value->location : SourceLocation{});
+        } else if constexpr (std::is_same_v<T, FunctionDecl>) {
+          auto old = scope;
+          auto oldReturn = currentReturn;
+          bool oldIn = inFunction;
+          scope = std::make_shared<Scope>();
+          scope->parent = old;
+          for (auto &p : n.params) {
+            scope->types[p.name] = p.type;
+            scope->mutableBindings[p.name] = false;
+          }
+          currentReturn = n.hasReturnType ? n.returnType : t("any");
+          inFunction = true;
+          stmt(n.body);
+          if (n.hasReturnType && n.returnType.name != "void" && !alwaysReturns(n.body))
+            error("function '" + n.name + "' can reach its end without returning " +
+                      n.returnType.str(),
+                  SourceLocation{});
+          scope = old;
+          currentReturn = oldReturn;
+          inFunction = oldIn;
+        } else if constexpr (std::is_same_v<T, ClassDecl>) {
+          if (!n.parent.empty() && classes.contains(n.parent)) {
+            auto &base = classes[n.parent];
+            if (hasModifier(base.modifiers, "final"))
+              error("cannot extend final class '" + n.parent + "'", SourceLocation{});
+            for (auto &m : n.methods) {
+              auto inherited = std::find_if(base.methods.begin(), base.methods.end(),
+                                            [&](const auto &x) { return x.name == m.name; });
+              if (hasModifier(m.modifiers, "override") && inherited == base.methods.end())
+                error("method '" + m.name + "' is marked override but no inherited method exists",
+                      SourceLocation{});
+              if (inherited != base.methods.end() && !hasModifier(m.modifiers, "override") &&
+                  m.name != "init")
+                error("overriding method '" + m.name + "' requires the override modifier",
+                      SourceLocation{});
+              if (inherited != base.methods.end() && hasModifier(inherited->modifiers, "final"))
+                error("cannot override final method '" + m.name + "'", SourceLocation{});
+              if (inherited != base.methods.end() && m.hasReturnType && inherited->hasReturnType &&
+                  !compatible(inherited->returnType, m.returnType))
+                error("override return type for '" + m.name + "' is incompatible",
+                      SourceLocation{});
+            }
+          }
+          for (auto &m : n.methods) {
+            auto old = scope;
+            auto oldReturn = currentReturn;
+            bool oldIn = inFunction;
+            scope = std::make_shared<Scope>();
+            scope->parent = old;
+            scope->types["self"] = t(n.name);
+            scope->mutableBindings["self"] = false;
+            for (auto &f : n.fields) {
+              scope->types[f.name] = f.type;
+              scope->mutableBindings[f.name] = true;
+            }
+            for (auto &p : m.params) {
+              scope->types[p.name] = p.type;
+              scope->mutableBindings[p.name] = false;
+            }
+            currentReturn = m.hasReturnType ? m.returnType : t("any");
+            inFunction = true;
+            stmt(m.body);
+            if (m.hasReturnType && m.returnType.name != "void" && !alwaysReturns(m.body))
+              error("method '" + m.name + "' can reach its end without returning " +
+                        m.returnType.str(),
+                    SourceLocation{});
+            scope = old;
+            currentReturn = oldReturn;
+            inFunction = oldIn;
+          }
+          if (!n.parent.empty() && !classes.contains(n.parent))
+            error("unknown parent class '" + n.parent + "'", {1, 1});
+        } else if constexpr (std::is_same_v<T, InterfaceDecl>) {
+        }
+      },
+      s->node);
+}
+bool Analyzer::alwaysReturns(const StmtPtr &s) const {
+  if (!s)
+    return false;
+  if (std::holds_alternative<ReturnStmt>(s->node))
+    return true;
+  if (auto b = std::get_if<BlockStmt>(&s->node)) {
+    for (auto &x : b->statements)
+      if (alwaysReturns(x))
+        return true;
+    return false;
+  }
+  if (auto i = std::get_if<IfStmt>(&s->node))
+    return i->elseBranch && alwaysReturns(i->thenBranch) && alwaysReturns(i->elseBranch);
+  return false;
+}
+} // namespace kyma

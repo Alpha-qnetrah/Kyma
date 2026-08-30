@@ -1,0 +1,43 @@
+{
+  "name": "kyma-language-support",
+  "displayName": "Kyma Language Support",
+  "description": "Syntax highlighting, snippets, and run/check commands for Kyma (.ky).",
+  "version": "0.1.0",
+  "publisher": "kyma-lang",
+  "license": "MIT",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages"],
+  "activationEvents": ["onLanguage:kyma"],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [{
+      "id": "kyma",
+      "aliases": ["Kyma", "ky"],
+      "extensions": [".ky"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "kyma",
+      "scopeName": "source.kyma",
+      "path": "./syntaxes/kyma.tmLanguage.json"
+    }],
+    "snippets": [{
+      "language": "kyma",
+      "path": "./snippets/kyma.json"
+    }],
+    "commands": [
+      { "command": "kyma.runFile", "title": "Kyma: Run File" },
+      { "command": "kyma.checkFile", "title": "Kyma: Check File" }
+    ],
+    "configuration": {
+      "title": "Kyma",
+      "properties": {
+        "kyma.executable": {
+          "type": "string",
+          "default": "kyma",
+          "description": "Kyma executable used by Run File and Check File."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "function": {
+    "prefix": "func",
+    "body": ["func ${1:name}(${2:parameter}: ${3:type}): ${4:void} {", "    $0", "}"],
+    "description": "Kyma function"
+  },
+  "class": {
+    "prefix": "class",
+    "body": ["class ${1:Name} {", "    public init(${2:value}: ${3:type}) {", "        self.${2:value} = ${2:value};", "    }", "", "    $0", "}"],
+    "description": "Kyma class"
+  },
+  "if": {
+    "prefix": "if",
+    "body": ["if (${1:condition}) {", "    $0", "} else {", "    ", "}"],
+    "description": "Kyma if statement"
+  }
+}

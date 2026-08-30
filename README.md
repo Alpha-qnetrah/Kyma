@@ -4,7 +4,7 @@ Kyma is a small, strongly typed, brace-delimited programming language. This repo
 
 ## Build
 
-Requirements: CMake 3.25+, a C++23 compiler, and Make (Ninja is preferred when installed). On the development machine: Apple arm64, Apple Clang 21 (C++23 verified), CMake 4.2.3, Make, Git, Homebrew, and LLDB are installed. Ninja, clang-format, clang-tidy, Valgrind, and a third-party test framework are not installed; the project therefore uses CTest and a dependency-free assertion test. No package was installed automatically.
+Requirements: CMake 3.25+, a C++23 compiler, and Make (Ninja is preferred when installed). On the development machine: Apple arm64, Apple Clang 21 (C++23 verified), CMake 4.2.3, Make, Git, Homebrew, and LLDB are installed. Homebrew LLVM 23.1.0 now provides clang-format and clang-tidy. Ninja, Valgrind, and a third-party test framework remain unavailable; the project uses CTest and dependency-free tests.
 
 ```sh
 cmake -S . -B build -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=Debug
@@ -17,12 +17,21 @@ The repository also provides a terminal-friendly workflow:
 ```sh
 make                 # configure and build Debug
 make test
+make format
 make install         # installs to ~/.local/bin/kyma
-kyma examples/hello.kyma
-make run FILE=examples/hello.kyma
+kyma examples/hello.ky
+make run FILE=examples/hello.ky
 ```
 
 Set `PREFIX=/usr/local` when a system-wide installation is appropriate.
+
+VS Code support is included and installed with:
+
+```sh
+make vscode-install
+```
+
+It registers `.ky` files with syntax colors, snippets, bracket/comment behavior, and Run/Check commands. `make vscode-package` creates the installable VSIX.
 
 Sanitizers (supported by Apple Clang):
 
@@ -34,8 +43,8 @@ cmake --build build-asan && ctest --test-dir build-asan --output-on-failure
 ## Use
 
 ```sh
-./build/kyma examples/hello.kyma
-./build/kyma --check examples/hello.kyma
+./build/kyma examples/hello.ky
+./build/kyma --check examples/hello.ky
 ./build/kyma --repl
 ```
 
