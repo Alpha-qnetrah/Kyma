@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(kyma VERSION 0.1.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -16,7 +16,7 @@ add_library(kyma_lib
     src/interpreter/interpreter.cpp
 )
 target_include_directories(kyma_lib PUBLIC include)
-target_compile_features(kyma_lib PUBLIC cxx_std_20)
+target_compile_features(kyma_lib PUBLIC cxx_std_23)
 target_compile_options(kyma_lib PRIVATE -Wall -Wextra -Wpedantic)
 if(KYMA_ENABLE_SANITIZERS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
   target_compile_options(kyma_lib PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
