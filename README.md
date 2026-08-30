@@ -27,4 +27,4 @@ cmake --build build-asan && ctest --test-dir build-asan --output-on-failure
 ./build/kyma --repl
 ```
 
-A source file runs only after lexing, parsing, and semantic analysis succeed. See `docs/` for the language contract and implementation boundaries.
+A source file runs only after lexing, parsing, and semantic analysis succeed. Runtime objects use the automatic tracing `Heap`; `collectGarbage()` and `gcStats()` are available for diagnostics. See `docs/` for the language contract and implementation boundaries.
