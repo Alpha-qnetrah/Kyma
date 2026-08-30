@@ -37,7 +37,7 @@ public:
       case '<': add(take('=')?TokenKind::LessEqual:TokenKind::Less); break;
       case '>': add(take('=')?TokenKind::GreaterEqual:TokenKind::Greater); break;
       case '&': if(take('&')) add(TokenKind::AndAnd); else fail("expected '&' after '&'"); break;
-      case '|': add(TokenKind::OrOr); break;
+      case '|': add(take('|')?TokenKind::OrOr:TokenKind::Pipe); break;
       case '?': add(TokenKind::Question); break;
       case '/': add(TokenKind::Slash); break;
       case '"': stringToken(); break; case '\'': charToken(); break;
