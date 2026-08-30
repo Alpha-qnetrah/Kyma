@@ -14,6 +14,7 @@ int main(){
   run("let dynamic: any; dynamic = 1; dynamic = \"text\"; let maybe: str? = null; print(dynamic);");
   run("let obj = { name: \"Kyma\", version: 1 }; obj.name = \"Language\"; print(obj.name);");
   run("let n = 2; set text = if (n == 2) { \"yes\" } else { \"no\" }; print(text); print(match (n) { 1 => \"one\"; 2 => \"two\"; _ => \"other\"; });");
+  auto gcProgram=Parser(lex("class Node { public next: Node?; } func make(): void { let n = new Node(); n.next = n; return; } loop (let i = 0; i < 300; i = i + 1) { make(); }" )).parse(); assert(Analyzer().analyze(gcProgram).empty()); Interpreter gcInterpreter; gcInterpreter.heap().setThreshold(1); gcInterpreter.execute(gcProgram); assert(gcInterpreter.heap().collections() > 0); assert(gcInterpreter.heap().live() == 0);
   auto bad=Parser(lex("let x: int = \"bad\";")).parse(); assert(!Analyzer().analyze(bad).empty());
   std::cout<<"all Kyma tests passed\n";
 }

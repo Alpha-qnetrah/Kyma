@@ -13,6 +13,7 @@ add_library(kyma_lib
     src/parser/parser.cpp
     src/semantic/analyzer.cpp
     src/runtime/runtime.cpp
+    src/runtime/gc.cpp
     src/interpreter/interpreter.cpp
 )
 target_include_directories(kyma_lib PUBLIC include)
