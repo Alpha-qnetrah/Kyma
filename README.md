@@ -4,7 +4,7 @@ Kyma is a small, strongly typed, brace-delimited programming language. This repo
 
 ## Build
 
-Requirements: CMake 3.25+, a C++23 compiler, and Make (Ninja is preferred when installed). On the development machine: Apple arm64, Apple Clang 21 (C++23 verified), CMake 4.2.3, Make, Git, Homebrew, and LLDB are installed. Homebrew LLVM 23.1.0 now provides clang-format and clang-tidy. Ninja, Valgrind, and a third-party test framework remain unavailable; the project uses CTest and dependency-free tests.
+Requirements: CMake 3.25+, a C++23 compiler, and Make (Ninja is preferred when installed). On the development machine: Apple arm64, Apple Clang 21 (C++23 verified), CMake 4.2.3, Make, Git, Homebrew, and LLDB are installed. Homebrew LLVM 23.1.0 now provides clang-format and clang-tidy. Ninja, Valgrind, and a third-party test framework remain unavailable; the project uses CTest and dependency-free tests. Homebrew LLVM was installed during this setup to provide formatting and linting.
 
 ```sh
 cmake -S . -B build -G 'Unix Makefiles' -DCMAKE_BUILD_TYPE=Debug
