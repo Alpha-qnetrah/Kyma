@@ -1,0 +1,9 @@
+func label(value: int): str {
+    return match (value) {
+        0 => "zero";
+        1 => "one";
+        _ => "other";
+    };
+}
+
+print(label(1));
