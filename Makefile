@@ -1,6 +1,7 @@
 BUILD_DIR ?= build
 GENERATOR ?= Unix Makefiles
 PREFIX ?= $(HOME)/.local
+VSCODE ?= /Applications/Visual Studio Code.app/Contents/Resources/app/bin/code
 
 .PHONY: all configure build release test asan format lint install run vscode-package vscode-install clean
 all: build
@@ -44,7 +45,7 @@ vscode-package:
 	sh tools/package-vscode.sh
 
 vscode-install: vscode-package
-	code --install-extension editors/vscode-kyma/kyma-language-support-0.1.0.vsix --force
+	"$(VSCODE)" --install-extension editors/vscode-kyma/kyma-language-support-0.1.0.vsix --force
 
 clean:
 	rm -rf build build-release build-asan
