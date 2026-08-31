@@ -25,6 +25,8 @@ make run FILE=examples/hello.ky
 
 Set `PREFIX=/usr/local` when a system-wide installation is appropriate.
 
+Platform archives for Linux, Windows, and macOS are produced from tagged releases. See [distribution.md](docs/distribution.md) for archive contents and installation instructions.
+
 VS Code support is included and installed with:
 
 ```sh

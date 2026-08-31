@@ -5,5 +5,8 @@ build-*/
 .idea/
 *.swp
 *.vsix
+*.tar.gz
+*.zip
+_CPack_Packages/
 fake-store-output/
 weather-output/

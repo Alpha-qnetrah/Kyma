@@ -1,0 +1,81 @@
+name: Release Kyma
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cli:
+    name: CLI (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DKYMA_BUILD_TESTS=ON
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Package CLI
+        run: cpack --config build/CPackConfig.cmake
+      - name: Upload CLI archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyma-cli-${{ matrix.os }}
+          path: |
+            kyma-*.tar.gz
+            kyma-*.zip
+
+  extension:
+    name: VS Code extension
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package VSIX
+        run: sh tools/package-vscode.sh
+      - name: Upload VSIX
+        uses: actions/upload-artifact@v4
+        with:
+          name: kyma-vscode-extension
+          path: editors/vscode-kyma/kyma-language-support-*.vsix
+
+  release:
+    name: Publish GitHub release
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [cli, extension]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" artifacts/* --repo "${GITHUB_REPOSITORY}" --generate-notes
+
+  marketplace:
+    name: Publish VS Code Marketplace extension
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [extension]
+    runs-on: ubuntu-latest
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Package VSIX
+        run: sh tools/package-vscode.sh
+      - name: Publish extension
+        if: env.VSCE_PAT != ''
+        run: npx --yes @vscode/vsce publish --packagePath "editors/vscode-kyma/kyma-language-support-$(node -p "require('./editors/vscode-kyma/package.json').version").vsix" --pat "$VSCE_PAT"
