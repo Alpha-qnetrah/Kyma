@@ -1,11 +1,11 @@
-#include "kyma/lexer.hpp"
-#include "kyma/lexing/tokenizer.hpp"
+#include "kyna/lexer.hpp"
+#include "kyna/lexing/tokenizer.hpp"
 
-namespace kyma {
+namespace kyna {
 std::vector<Token> lex(const std::string &source) {
   auto result = tokenize(SourceFile{UnknownSource, {}, source});
   if (!result.diagnostics.empty())
-    throw KymaError(result.diagnostics.front());
+    throw KynaError(result.diagnostics.front());
   return std::move(result.tokens);
 }
-} // namespace kyma
+} // namespace kyna

@@ -1,9 +1,9 @@
-#include "kyma/parser.hpp"
+#include "kyna/parser.hpp"
 #include <algorithm>
 #include <sstream>
 #include <type_traits>
 
-namespace kyma {
+namespace kyna {
 Parser::Parser(std::vector<Token> t) : tokens(std::move(t)) {}
 const Token &Parser::peek() const { return tokens[current]; }
 const Token &Parser::previous() const { return tokens[current - 1]; }
@@ -21,7 +21,7 @@ const Token &Parser::consume(TokenKind k, const std::string &msg) {
   diagnostic.code = "K2000";
   if (peek().kind == TokenKind::End)
     incomplete = true;
-  throw KymaError(diagnostic);
+  throw KynaError(diagnostic);
 }
 ExprPtr Parser::make(Expr::Node n, SourceLocation l) {
   return std::make_shared<Expr>(Expr{std::move(n), l});
@@ -33,7 +33,7 @@ StmtPtr Parser::make(Stmt::Node n, SourceLocation l) {
 std::vector<StmtPtr> Parser::parse() {
   auto result = parseRecovering(SourceFile{});
   if (!result.diagnostics.empty())
-    throw KymaError(result.diagnostics.front());
+    throw KynaError(result.diagnostics.front());
   return std::move(result.tree.module.declarations);
 }
 ParseResult Parser::parseRecovering(const SourceFile &source) {
@@ -58,7 +58,7 @@ ParseResult Parser::parseRecovering(const SourceFile &source) {
             parsed->node);
         module.declarations.push_back(std::move(parsed));
       }
-    } catch (const KymaError &error) {
+    } catch (const KynaError &error) {
       diagnostics.push_back(error.diagnostic);
       synchronize();
     }
@@ -107,9 +107,9 @@ StmtPtr Parser::declaration() {
   const bool exported = match(TokenKind::Export);
   if (match(TokenKind::Import)) {
     if (exported)
-      throw KymaError({"an import cannot be exported", previous().location, false, "K2010"});
+      throw KynaError({"an import cannot be exported", previous().location, false, "K2010"});
     if (seenNonImport)
-      throw KymaError(
+      throw KynaError(
           {"imports must precede other declarations", previous().location, false, "K2011"});
     --current;
     return importDeclaration();
@@ -136,10 +136,10 @@ StmtPtr Parser::declaration() {
     return parsed;
   }
   if (exported)
-    throw KymaError(
+    throw KynaError(
         {"export must precede a named declaration", previous().location, false, "K2012"});
   if (!mods.empty())
-    throw KymaError(
+    throw KynaError(
         {"member modifier is only valid on a function or class", previous().location, false});
   return statement();
 }
@@ -169,7 +169,7 @@ TypeRef Parser::typeRef() {
         check(TokenKind::NumType) || check(TokenKind::StrType) || check(TokenKind::CharType) ||
         check(TokenKind::BoolType) || check(TokenKind::Null) || check(TokenKind::VoidType) ||
         check(TokenKind::AnyType)))
-    throw KymaError({"expected a type", peek().location, false});
+    throw KynaError({"expected a type", peek().location, false});
   ++current;
   TypeRef r{t.lexeme, false, {}};
   if (match(TokenKind::Question))
@@ -198,7 +198,7 @@ StmtPtr Parser::varDeclaration() {
   if (match(TokenKind::Equal))
     d.initializer = expression();
   else if (!d.hasType || d.type.name != "any")
-    throw KymaError({"a non-any binding requires an initializer", name.location, false});
+    throw KynaError({"a non-any binding requires an initializer", name.location, false});
   consume(TokenKind::Semicolon, "expected ';' after declaration");
   return make(std::move(d), t.location);
 }
@@ -333,7 +333,7 @@ StmtPtr Parser::block() {
         b.statements.push_back(make(ExprStmt{e}, e->location));
       else {
         if (!check(TokenKind::RightBrace))
-          throw KymaError({"expected ';' after expression", peek().location, false});
+          throw KynaError({"expected ';' after expression", peek().location, false});
         b.tail = e;
       }
     }
@@ -394,7 +394,7 @@ StmtPtr Parser::statement() {
       }
       return make(LoopStmt{init, cond, inc, block(), label}, t.location);
     }
-    throw KymaError({"label must precede a loop", peek().location, false});
+    throw KynaError({"label must precede a loop", peek().location, false});
   }
   if (match(TokenKind::Loop)) {
     Token t = previous();
@@ -458,4 +458,4 @@ StmtPtr Parser::statement() {
   return make(ExprStmt{e}, e->location);
 }
 
-} // namespace kyma
+} // namespace kyna

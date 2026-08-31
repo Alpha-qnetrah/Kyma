@@ -1,6 +1,6 @@
-#include "kyma/types.hpp"
+#include "kyna/types.hpp"
 
-namespace kyma {
+namespace kyna {
 std::string TypeRef::str() const {
   std::string result = name;
   if (nullable)
@@ -9,4 +9,4 @@ std::string TypeRef::str() const {
     result += " | " + type.str();
   return result;
 }
-} // namespace kyma
+} // namespace kyna

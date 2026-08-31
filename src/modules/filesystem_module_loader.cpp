@@ -1,10 +1,10 @@
-#include "kyma/lexing/tokenizer.hpp"
-#include "kyma/modules/module_loader.hpp"
-#include "kyma/parsing/module_parser.hpp"
+#include "kyna/lexing/tokenizer.hpp"
+#include "kyna/modules/module_loader.hpp"
+#include "kyna/parsing/module_parser.hpp"
 #include <algorithm>
 #include <set>
 
-namespace kyma {
+namespace kyna {
 namespace {
 
 class GraphLoader {
@@ -140,4 +140,4 @@ ModuleLoadResult loadModuleGraphWithEntrySource(SourceManager &sources,
       .load(entry);
 }
 
-} // namespace kyma
+} // namespace kyna

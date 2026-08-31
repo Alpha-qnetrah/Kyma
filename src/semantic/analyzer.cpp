@@ -1,9 +1,9 @@
-#include "kyma/analyzer.hpp"
-#include "kyma/behavior.hpp"
+#include "kyna/analyzer.hpp"
+#include "kyna/behavior.hpp"
 #include <algorithm>
 #include <map>
 
-namespace kyma {
+namespace kyna {
 namespace {
 TypeRef t(const std::string &n) { return TypeRef{n, false, {}}; }
 int visibility(const std::vector<std::string> &modifiers) {
@@ -373,4 +373,4 @@ bool Analyzer::objectConforms(const ObjectExpr &object, const InterfaceDecl &con
   }
   return conforms;
 }
-} // namespace kyma
+} // namespace kyna

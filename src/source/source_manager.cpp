@@ -1,9 +1,9 @@
-#include "kyma/source/source_manager.hpp"
+#include "kyna/source/source_manager.hpp"
 #include <algorithm>
 #include <fstream>
 #include <sstream>
 
-namespace kyma {
+namespace kyna {
 
 SourceId SourceManager::add(std::filesystem::path path, std::string text) {
   ManagedSource source;
@@ -68,4 +68,4 @@ SourceSpan SourceManager::span(SourceId id, std::size_t start, std::size_t end) 
   return {id, start, end, startLine, startColumn, endLine, endColumn};
 }
 
-} // namespace kyma
+} // namespace kyna

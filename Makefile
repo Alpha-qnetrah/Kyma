@@ -2,7 +2,7 @@ BUILD_DIR ?= build
 GENERATOR ?= Unix Makefiles
 PREFIX ?= $(HOME)/.local
 VSCODE ?= /Applications/Visual Studio Code.app/Contents/Resources/app/bin/code
-VSCODE_EXTENSION_VERSION := $(shell sed -n 's/.*"version": "\([^"]*\)".*/\1/p' editors/vscode-kyma/package.json | head -1)
+VSCODE_EXTENSION_VERSION := $(shell sed -n 's/.*"version": "\([^"]*\)".*/\1/p' editors/vscode-kyna/package.json | head -1)
 
 .PHONY: all configure build release test asan format lint install run vscode-package vscode-install clean
 all: build
@@ -29,24 +29,24 @@ lint: build
 	"$$tidy" $$(find src tests -type f -name '*.cpp' | sort) -- -Iinclude -std=c++23
 
 asan:
-	cmake -S . -B build-asan -G "$(GENERATOR)" -DCMAKE_BUILD_TYPE=Debug -DKYMA_ENABLE_SANITIZERS=ON
+	cmake -S . -B build-asan -G "$(GENERATOR)" -DCMAKE_BUILD_TYPE=Debug -DKYNA_ENABLE_SANITIZERS=ON
 	cmake --build build-asan
 	ctest --test-dir build-asan --output-on-failure
 
 install: build
 	cmake --install $(BUILD_DIR) --prefix "$(PREFIX)"
-	@echo "Installed kyma to $(PREFIX)/bin/kyma"
+	@echo "Installed kyna to $(PREFIX)/bin/kyna"
 	@echo "Ensure $(PREFIX)/bin is on PATH."
 
 run: build
-	@test -n "$(FILE)" || (echo "usage: make run FILE=examples/hello.ky"; exit 2)
-	./$(BUILD_DIR)/kyma $(FILE)
+	@test -n "$(FILE)" || (echo "usage: make run FILE=examples/hello.kyna"; exit 2)
+	./$(BUILD_DIR)/kyna $(FILE)
 
 vscode-package:
 	sh tools/package-vscode.sh
 
 vscode-install: vscode-package
-	"$(VSCODE)" --install-extension editors/vscode-kyma/kyma-language-support-$(VSCODE_EXTENSION_VERSION).vsix --force
+	"$(VSCODE)" --install-extension editors/vscode-kyna/kyna-language-support-$(VSCODE_EXTENSION_VERSION).vsix --force
 
 clean:
 	rm -rf build build-release build-asan

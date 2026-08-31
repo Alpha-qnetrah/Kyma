@@ -3,7 +3,7 @@
 #include <set>
 #include <string>
 
-namespace kyma {
+namespace kyna {
 namespace {
 
 class BestPracticeChecker {
@@ -175,4 +175,4 @@ std::vector<Diagnostic> checkBestPractices(const std::vector<StmtPtr> &declarati
   return BestPracticeChecker{}.check(declarations);
 }
 
-} // namespace kyma
+} // namespace kyna

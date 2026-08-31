@@ -1,9 +1,9 @@
-#include "kyma/semantics/module_analyzer.hpp"
+#include "kyna/semantics/module_analyzer.hpp"
 #include "best_practice_checker.hpp"
-#include "kyma/analyzer.hpp"
+#include "kyna/analyzer.hpp"
 #include <algorithm>
 
-namespace kyma {
+namespace kyna {
 namespace {
 
 std::map<std::string, TypeRef> exportedTypes(const ModuleRecord &module) {
@@ -70,4 +70,4 @@ AnalysisResult analyzeModuleGraph(ParsedModuleGraph graph) {
   return {CheckedProgram{std::move(graph)}, std::move(diagnostics)};
 }
 
-} // namespace kyma
+} // namespace kyna

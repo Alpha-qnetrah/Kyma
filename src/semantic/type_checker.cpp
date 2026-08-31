@@ -1,8 +1,8 @@
-#include "kyma/analyzer.hpp"
-#include "kyma/behavior.hpp"
+#include "kyna/analyzer.hpp"
+#include "kyna/behavior.hpp"
 #include <algorithm>
 
-namespace kyma {
+namespace kyna {
 namespace {
 TypeRef t(const std::string &name) { return TypeRef{name, false, {}}; }
 int visibility(const std::vector<std::string> &modifiers) {
@@ -258,4 +258,4 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
       },
       e->node);
 }
-} // namespace kyma
+} // namespace kyna

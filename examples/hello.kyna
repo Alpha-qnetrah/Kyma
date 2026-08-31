@@ -1,0 +1,14 @@
+func greet(name: str): str {
+    return "Hello " + name;
+}
+
+let message: str = greet("Kyna");
+print(message);
+
+let age = 21;
+set category = if (age >= 18) {
+    "adult"
+} else {
+    "minor"
+};
+print(category);

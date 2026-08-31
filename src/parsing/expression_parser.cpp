@@ -1,6 +1,6 @@
-#include "kyma/parser.hpp"
+#include "kyna/parser.hpp"
 
-namespace kyma {
+namespace kyna {
 ExprPtr Parser::expression() { return assignment(); }
 ExprPtr Parser::assignment() {
   auto e = logicOr();
@@ -159,7 +159,7 @@ ExprPtr Parser::primary() {
     if (match(TokenKind::Else))
       n = block();
     else
-      throw KymaError({"if expression requires else", peek().location, false});
+      throw KynaError({"if expression requires else", peek().location, false});
     return make(IfExpr{c, y, n}, t.location);
   }
   if (match(TokenKind::Match)) {
@@ -182,6 +182,6 @@ ExprPtr Parser::primary() {
     consume(TokenKind::RightBrace, "expected '}' after match");
     return make(MatchExpr{s, std::move(a)}, t.location);
   }
-  throw KymaError({"expected expression", t.location, false});
+  throw KynaError({"expected expression", t.location, false});
 }
-} // namespace kyma
+} // namespace kyna

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "kyma/diagnostics/diagnostic.hpp"
-#include "kyma/syntax/declaration_nodes.hpp"
+#include "kyna/diagnostics/diagnostic.hpp"
+#include "kyna/syntax/declaration_nodes.hpp"
 #include <vector>
 
-namespace kyma {
+namespace kyna {
 
 std::vector<Diagnostic> checkBestPractices(const std::vector<StmtPtr> &declarations);
 
-} // namespace kyma
+} // namespace kyna

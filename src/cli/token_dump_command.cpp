@@ -1,14 +1,14 @@
 #include "cli_commands.hpp"
-#include "kyma/diagnostics/diagnostic_renderer.hpp"
+#include "kyna/diagnostics/diagnostic_renderer.hpp"
 
-namespace kyma::cli {
+namespace kyna::cli {
 
 int dumpTokens(const Options &options, LanguageSession &session, std::istream &input,
                std::ostream &output, std::ostream &errors) {
   std::string readError;
   auto source = readInput(options.input, input, readError);
   if (!readError.empty()) {
-    errors << "kyma: " << readError << '\n';
+    errors << "kyna: " << readError << '\n';
     return 2;
   }
   auto result = session.inspectTokens(options.input == "-" ? "<stdin>" : options.input,
@@ -22,4 +22,4 @@ int dumpTokens(const Options &options, LanguageSession &session, std::istream &i
   return result.ok() ? 0 : 1;
 }
 
-} // namespace kyma::cli
+} // namespace kyna::cli

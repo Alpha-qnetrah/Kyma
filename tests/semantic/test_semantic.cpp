@@ -1,13 +1,13 @@
-#include "kyma/parser.hpp"
-#include "kyma/validation.hpp"
+#include "kyna/parser.hpp"
+#include "kyna/validation.hpp"
 #include <cassert>
 
 int main() {
-  auto valid = kyma::Parser(kyma::lex("intf Printable { name: str; } let value: int = 1;")).parse();
-  assert(kyma::validate(valid).empty());
+  auto valid = kyna::Parser(kyna::lex("intf Printable { name: str; } let value: int = 1;")).parse();
+  assert(kyna::validate(valid).empty());
 
-  auto invalid = kyma::Parser(kyma::lex("set value = 1; value = 2;")).parse();
-  auto diagnostics = kyma::validate(invalid);
+  auto invalid = kyna::Parser(kyna::lex("set value = 1; value = 2;")).parse();
+  auto diagnostics = kyna::validate(invalid);
   assert(!diagnostics.empty());
   assert(!diagnostics.front().warning);
 }

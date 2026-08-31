@@ -1,7 +1,7 @@
-#include "kyma/runtime.hpp"
+#include "kyna/runtime.hpp"
 #include <sstream>
 
-namespace kyma {
+namespace kyna {
 std::string Value::typeName() const {
   return std::visit(
       [](const auto &v) -> std::string {
@@ -106,4 +106,4 @@ bool Value::equals(const Value &other) const {
       },
       data, other.data);
 }
-} // namespace kyma
+} // namespace kyna

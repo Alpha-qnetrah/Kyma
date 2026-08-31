@@ -1,12 +1,12 @@
 #pragma once
 
-#include "kyma/language/language_session.hpp"
+#include "kyna/language/language_session.hpp"
 #include <filesystem>
 #include <iosfwd>
 #include <string>
 #include <vector>
 
-namespace kyma::cli {
+namespace kyna::cli {
 
 enum class Command { Run, Check, Repl, Tokens, Ast, Help, Version, Invalid };
 
@@ -34,4 +34,4 @@ int dumpSyntax(const Options &, LanguageSession &, std::istream &, std::ostream 
 std::string readInput(const std::string &path, std::istream &standardInput, std::string &error);
 int renderResult(const LanguageResult &, const Options &, LanguageSession &, std::ostream &);
 
-} // namespace kyma::cli
+} // namespace kyna::cli

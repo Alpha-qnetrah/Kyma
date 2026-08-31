@@ -1,4 +1,4 @@
-name: Release Kyma
+name: Release Kyna
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DKYMA_BUILD_TESTS=ON
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DKYNA_BUILD_TESTS=ON
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Test
@@ -29,10 +29,10 @@ jobs:
       - name: Upload CLI archives
         uses: actions/upload-artifact@v7
         with:
-          name: kyma-cli-${{ matrix.os }}
+          name: kyna-cli-${{ matrix.os }}
           path: |
-            kyma-*.tar.gz
-            kyma-*.zip
+            kyna-*.tar.gz
+            kyna-*.zip
 
   extension:
     name: VS Code extension
@@ -44,8 +44,8 @@ jobs:
       - name: Upload VSIX
         uses: actions/upload-artifact@v7
         with:
-          name: kyma-vscode-extension
-          path: editors/vscode-kyma/kyma-language-support-*.vsix
+          name: kyna-vscode-extension
+          path: editors/vscode-kyna/kyna-language-support-*.vsix
 
   release:
     name: Publish GitHub release
@@ -80,4 +80,4 @@ jobs:
         run: sh tools/package-vscode.sh
       - name: Publish extension
         if: env.VSCE_PAT != ''
-        run: npx --yes @vscode/vsce publish --packagePath "editors/vscode-kyma/kyma-language-support-$(node -p "require('./editors/vscode-kyma/package.json').version").vsix" --pat "$VSCE_PAT"
+        run: npx --yes @vscode/vsce publish --packagePath "editors/vscode-kyna/kyna-language-support-$(node -p "require('./editors/vscode-kyna/package.json').version").vsix" --pat "$VSCE_PAT"

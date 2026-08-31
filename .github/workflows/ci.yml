@@ -1,4 +1,4 @@
-name: Kyma CI
+name: Kyna CI
 
 on:
   push:
@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Configure
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DKYMA_BUILD_TESTS=ON
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DKYNA_BUILD_TESTS=ON
       - name: Build
         run: cmake --build build --config Release --parallel
       - name: Test

@@ -1,4 +1,4 @@
-# Contributing to Kyma
+# Contributing to Kyna
 
 ## Before you start
 
@@ -7,13 +7,13 @@ For language changes, read the [language specification](docs/language-spec.md) a
 ## Local workflow
 
 ```sh
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DKYMA_BUILD_TESTS=ON
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DKYNA_BUILD_TESTS=ON
 cmake --build build
 ctest --test-dir build --output-on-failure
 git diff --check
 ```
 
-Use `make format` when changing C++ and keep public interfaces in the narrowest domain layer that owns them. Add a focused characterization or regression test for behavior changes. Keep `.ky` examples small and runnable with the checked-in CLI.
+Use `make format` when changing C++ and keep public interfaces in the narrowest domain layer that owns them. Add a focused characterization or regression test for behavior changes. Keep `.kyna` examples small and runnable with the checked-in CLI.
 
 ## Pull requests
 

@@ -1,6 +1,6 @@
 #include "cli_commands.hpp"
 
-namespace kyma::cli {
+namespace kyna::cli {
 namespace {
 Command commandNamed(const std::string &value) {
   if (value == "run")
@@ -106,4 +106,4 @@ Options parseArguments(int argc, char **argv) {
   return options;
 }
 
-} // namespace kyma::cli
+} // namespace kyna::cli

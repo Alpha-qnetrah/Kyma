@@ -1,8 +1,8 @@
-#include "kyma/diagnostics/diagnostic_renderer.hpp"
+#include "kyna/diagnostics/diagnostic_renderer.hpp"
 #include <algorithm>
 #include <sstream>
 
-namespace kyma {
+namespace kyna {
 
 std::string renderCompilerDiagnostics(const std::vector<Diagnostic> &diagnostics,
                                       const SourceManager &sources,
@@ -49,4 +49,4 @@ std::string renderCompilerDiagnostics(const std::vector<Diagnostic> &diagnostics
   return output.str();
 }
 
-} // namespace kyma
+} // namespace kyna

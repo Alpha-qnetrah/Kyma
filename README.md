@@ -1,18 +1,18 @@
-# Kyma
+# Kyna
 
 <p align="center">
-  <img src="editors/vscode-kyma/assets/kyma-k.svg" width="112" alt="Kyma logo">
+  <img src="editors/vscode-kyna/assets/kyna-k.svg" width="112" alt="Kyna logo">
 </p>
 
 <p align="center"><strong>A small, typed language for readable scripts and language-tool experiments.</strong></p>
 
 <p align="center">
-  <a href="https://github.com/Alpha-qnetrah/Kyma/releases">Releases</a> ·
+  <a href="https://github.com/Alpha-qnetrah/Kyna/releases">Releases</a> ·
   <a href="docs/language-spec.md">Language specification</a> ·
-  <a href="editors/vscode-kyma/README.md">VS Code support</a>
+  <a href="editors/vscode-kyna/README.md">VS Code support</a>
 </p>
 
-Kyma is a brace-delimited, strongly typed programming language implemented in dependency-free C++23. The v0.2 runtime is a tree-walking interpreter with structured diagnostics, recoverable parsing, modules, structural interfaces, class contracts, a tracing heap, host capabilities, and a persistent REPL.
+Kyna is a brace-delimited, strongly typed programming language implemented in dependency-free C++23. The v0.3 runtime is a tree-walking interpreter with structured diagnostics, recoverable parsing, modules, structural interfaces, class contracts, a tracing heap, host capabilities, and a persistent REPL.
 
 ## Highlights
 
@@ -36,16 +36,16 @@ ctest --test-dir build --output-on-failure
 Run a program:
 
 ```sh
-./build/kyma run examples/hello.ky --no-color
-./build/kyma check examples/hello.ky --no-color
-./build/kyma repl
+./build/kyna run examples/hello.kyna --no-color
+./build/kyna check examples/hello.kyna --no-color
+./build/kyna repl
 ```
 
-The CLI also supports `tokens`, `ast`, repeated `--module-path`, `--diagnostic-format text|json`, and `kyma file.ky` as a `run` alias. See [distribution.md](docs/distribution.md) for Linux, Windows, and macOS archives.
+The CLI also supports `tokens`, `ast`, repeated `--module-path`, `--diagnostic-format text|json`, and `kyna file.kyna` as a `run` alias. See [distribution.md](docs/distribution.md) for Linux, Windows, and macOS archives.
 
-## A small Kyma program
+## A small Kyna program
 
-```kyma
+```kyna
 func greet(name: str): str {
     return "Hello " + name;
 }
@@ -57,13 +57,13 @@ set category = if (age >= 18) {
     "minor"
 };
 
-console.log(greet("Kyma"), category);
+console.log(greet("Kyna"), category);
 ```
 
 Modules use explicit imports and exports:
 
-```kyma
-import "./math.ky" as math;
+```kyna
+import "./math.kyna" as math;
 
 console.log(math.add(2, 3));
 ```
@@ -72,7 +72,7 @@ Read the complete grammar and semantics in the [language specification](docs/lan
 
 ## Standard library examples
 
-```kyma
+```kyna
 set response = fetch("https://api.open-meteo.com/v1/forecast?latitude=30.04&longitude=31.24&current=temperature_2m");
 set weather = response.json();
 console.log("temperature", weather.current.temperature_2m);
@@ -95,10 +95,10 @@ Build and install the extension locally:
 
 ```sh
 make vscode-package
-code --install-extension editors/vscode-kyma/kyma-language-support-0.2.2.vsix --force
+code --install-extension editors/vscode-kyna/kyna-language-support-0.3.0.vsix --force
 ```
 
-The extension registers `.ky`, `#` comments, completions for Kyma words/declarations/imports, live diagnostics, and editor Run/Check commands. Its primary icon is purple; the black-and-white branding assets remain available in [`editors/vscode-kyma/assets/`](editors/vscode-kyma/assets/).
+The extension registers the canonical `.kyna` extension and the legacy `.ky` compatibility extension, plus `#` comments, completions for Kyna words/declarations/imports, live diagnostics, and editor Run/Check commands. Its primary icon is purple; the black-and-white branding assets remain available in [`editors/vscode-kyna/assets/`](editors/vscode-kyna/assets/).
 
 ## Documentation
 
@@ -113,7 +113,7 @@ The extension registers `.ky`, `#` comments, completions for Kyma words/declarat
 
 ## Project layout
 
-The public C++ layers follow `source → syntax → modules → semantics → execution → language → CLI`. Domain-specific headers are under [`include/kyma/`](include/kyma/) and implementations are split by lexer, parser, semantic pass, runtime, memory, standard-library, and CLI responsibility.
+The public C++ layers follow `source → syntax → modules → semantics → execution → language → CLI`. Domain-specific headers are under [`include/kyna/`](include/kyna/) and implementations are split by lexer, parser, semantic pass, runtime, memory, standard-library, and CLI responsibility.
 
 ## Contributing and security
 
@@ -121,4 +121,4 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. To
 
 ## License
 
-Kyma is released under the [MIT License](LICENSE).
+Kyna is released under the [MIT License](LICENSE).

@@ -1,9 +1,9 @@
 # Modules
 
-Kyma v0.2 uses immutable namespace imports:
+Kyna v0.3 uses immutable namespace imports:
 
-```kyma
-import "./math.ky" as math;
+```kyna
+import "./math.kyna" as math;
 export func add(a: int, b: int): int { return a + b; }
 ```
 

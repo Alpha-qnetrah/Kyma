@@ -1,8 +1,8 @@
-#include "kyma/analyzer.hpp"
-#include "kyma/validation.hpp"
+#include "kyna/analyzer.hpp"
+#include "kyna/validation.hpp"
 
-namespace kyma {
+namespace kyna {
 std::vector<Diagnostic> validate(const std::vector<StmtPtr> &program) {
   return Analyzer().analyze(program);
 }
-} // namespace kyma
+} // namespace kyna

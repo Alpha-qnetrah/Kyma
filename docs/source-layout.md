@@ -1,6 +1,6 @@
 # Source layout
 
-Kyma uses deep modules with narrow interfaces and localized implementations:
+Kyna uses deep modules with narrow interfaces and localized implementations:
 
 - `source/` owns source files, identity, byte offsets, and line indexing.
 - `diagnostics/` owns versioned text and JSON presentation.
@@ -13,6 +13,6 @@ Kyma uses deep modules with narrow interfaces and localized implementations:
 - `language/` contains the high-level `LanguageSession` orchestration boundary.
 - `cli/` is the only command-line adapter.
 - `tests/<module>/` tests each module through its public interface.
-- `editors/vscode-kyma/` is independently packageable editor support for `.ky` files.
+- `editors/vscode-kyna/` is independently packageable editor support for `.kyna` files.
 
 Files are named for one language responsibility. Generic implementation names such as `values.cpp`, `functions.cpp`, `behavior.cpp`, `validation.cpp`, and `words.cpp` are no longer used.

@@ -1,7 +1,7 @@
-#include "kyma/keywords.hpp"
+#include "kyna/keywords.hpp"
 #include <map>
 
-namespace kyma {
+namespace kyna {
 TokenKind keywordKind(const std::string &word) {
   static const std::map<std::string, TokenKind> keywords = {{"let", TokenKind::Let},
                                                             {"set", TokenKind::Set},
@@ -49,4 +49,4 @@ TokenKind keywordKind(const std::string &word) {
   auto found = keywords.find(word);
   return found == keywords.end() ? TokenKind::Identifier : found->second;
 }
-} // namespace kyma
+} // namespace kyna

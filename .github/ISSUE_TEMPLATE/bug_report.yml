@@ -1,5 +1,5 @@
 name: Bug report
-description: Report a reproducible Kyma or tooling problem
+description: Report a reproducible Kyna or tooling problem
 title: "[bug] "
 labels: [bug]
 body:
@@ -9,15 +9,15 @@ body:
   - type: input
     id: version
     attributes:
-      label: Kyma version
-      placeholder: "0.2.2 or commit SHA"
+      label: Kyna version
+      placeholder: "0.3.0 or commit SHA"
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
       label: Reproduction
-      description: Include the smallest .ky program and exact command.
+      description: Include the smallest .kyna program and exact command.
     validations:
       required: true
   - type: textarea

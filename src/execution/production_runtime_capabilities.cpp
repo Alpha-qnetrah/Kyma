@@ -1,4 +1,4 @@
-#include "kyma/execution/runtime_capabilities.hpp"
+#include "kyna/execution/runtime_capabilities.hpp"
 #include <algorithm>
 #include <cstdlib>
 #include <cstdio>
@@ -13,7 +13,7 @@
 #include <unistd.h>
 #endif
 
-namespace kyma {
+namespace kyna {
 namespace {
 
 class LocalFileSystem final : public FileSystemPort {
@@ -100,7 +100,7 @@ public:
   std::optional<std::string> request(const std::string &method, const std::string &url,
                                      const std::optional<std::string> &body,
                                      std::string &error) override {
-    if (url == "mock://kyma/users")
+    if (url == "mock://kyna/users")
       return std::string(
           R"([{"id":1,"name":"Ada","active":true},{"id":2,"name":"Linus","active":false},{"id":3,"name":"Grace","active":true}])");
 #if defined(_WIN32)
@@ -204,7 +204,7 @@ private:
     std::string command =
         "curl --fail-with-body --silent --show-error --location --retry 2 "
         "--retry-all-errors --retry-delay 1 --connect-timeout 10 --max-time 30 "
-        "--user-agent Kyma/0.2.2 --http1.1 --request " + windowsShellQuote(method);
+        "--user-agent Kyna/0.3.0 --http1.1 --request " + windowsShellQuote(method);
     if (body)
       command += " --header " + windowsShellQuote("Content-Type: application/json") +
                  " --data " + windowsShellQuote(*body);
@@ -263,7 +263,7 @@ private:
                                          "--max-time",
                                          "30",
                                          "--user-agent",
-                                         "Kyma/0.2.2",
+                                         "Kyna/0.3.0",
                                          "--http1.1",
                                          "--request",
                                          method};
@@ -310,4 +310,4 @@ RuntimeCapabilities productionRuntimeCapabilities() {
           std::make_shared<PlainHttpNetwork>(), std::make_shared<SystemClock>()};
 }
 
-} // namespace kyma
+} // namespace kyna

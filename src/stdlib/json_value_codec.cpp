@@ -1,5 +1,5 @@
 #include "json_value_codec.hpp"
-#include "kyma/interpreter.hpp"
+#include "kyna/interpreter.hpp"
 #include <charconv>
 #include <cmath>
 #include <cstdlib>
@@ -7,7 +7,7 @@
 #include <set>
 #include <sstream>
 
-namespace kyma {
+namespace kyna {
 namespace {
 
 class JsonParser {
@@ -30,7 +30,7 @@ private:
   [[noreturn]] void fail(const std::string &message) const {
     Diagnostic diagnostic{message + " at JSON byte " + std::to_string(position + 1), {}, false};
     diagnostic.code = "K5100";
-    throw KymaError(diagnostic);
+    throw KynaError(diagnostic);
   }
 
   void whitespace() {
@@ -287,7 +287,7 @@ std::string stringify(const Value &value, std::set<const void *> &active) {
           return std::to_string(stored);
         else if constexpr (std::is_same_v<T, double>) {
           if (!std::isfinite(stored))
-            throw KymaError({"JSON cannot encode a non-finite number", {}, false, "K5101"});
+            throw KynaError({"JSON cannot encode a non-finite number", {}, false, "K5101"});
           std::ostringstream output;
           output << std::setprecision(15) << stored;
           return output.str();
@@ -299,7 +299,7 @@ std::string stringify(const Value &value, std::set<const void *> &active) {
           if (!stored)
             return "null";
           if (!active.insert(stored).second)
-            throw KymaError({"JSON cannot encode a cyclic array", {}, false, "K5101"});
+            throw KynaError({"JSON cannot encode a cyclic array", {}, false, "K5101"});
           std::string output = "[";
           for (std::size_t index = 0; index < stored->elements.size(); ++index) {
             if (index)
@@ -312,7 +312,7 @@ std::string stringify(const Value &value, std::set<const void *> &active) {
           if (!stored)
             return "null";
           if (!active.insert(stored).second)
-            throw KymaError({"JSON cannot encode a cyclic object", {}, false, "K5101"});
+            throw KynaError({"JSON cannot encode a cyclic object", {}, false, "K5101"});
           std::string output = "{";
           bool first = true;
           for (const auto &[name, field] : stored->fields) {
@@ -326,7 +326,7 @@ std::string stringify(const Value &value, std::set<const void *> &active) {
           active.erase(stored);
           return output + '}';
         } else {
-          throw KymaError({"value of type '" + value.typeName() + "' cannot be converted to JSON",
+          throw KynaError({"value of type '" + value.typeName() + "' cannot be converted to JSON",
                            {},
                            false,
                            "K5101"});
@@ -346,4 +346,4 @@ std::string stringifyJsonValue(const Value &value) {
   return stringify(value, active);
 }
 
-} // namespace kyma
+} // namespace kyna

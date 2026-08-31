@@ -1,9 +1,9 @@
-#include "kyma/runtime.hpp"
+#include "kyna/runtime.hpp"
 #include <algorithm>
 #include <deque>
 #include <set>
 
-namespace kyma {
+namespace kyna {
 
 Heap::~Heap() = default;
 
@@ -114,4 +114,4 @@ HeapStats Heap::stats() const {
   return {live(), allocatedCount, reclaimedCount, collectionCount, peakLiveCount, nextThreshold};
 }
 
-} // namespace kyma
+} // namespace kyna

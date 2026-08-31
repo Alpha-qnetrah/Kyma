@@ -1,17 +1,17 @@
 #include "cli_commands.hpp"
-#include "kyma/diagnostics/diagnostic_renderer.hpp"
-#include "kyma/lexing/tokenizer.hpp"
-#include "kyma/parsing/module_parser.hpp"
+#include "kyna/diagnostics/diagnostic_renderer.hpp"
+#include "kyna/lexing/tokenizer.hpp"
+#include "kyna/parsing/module_parser.hpp"
 #include <memory>
 
-namespace kyma::cli {
+namespace kyna::cli {
 
 int runRepl(const Options &options, std::istream &input, std::ostream &output,
             std::ostream &errors) {
   auto session = std::make_unique<LanguageSession>(LanguageSessionOptions{options.modulePaths});
   std::string pending;
   std::string line;
-  output << "Kyma 0.2.2 REPL (:help for commands, :quit to exit)\n>> ";
+  output << "Kyna 0.3.0 REPL (:help for commands, :quit to exit)\n>> ";
   while (std::getline(input, line)) {
     if (pending.empty() && (line == ":quit" || line == ":q"))
       break;
@@ -56,4 +56,4 @@ int runRepl(const Options &options, std::istream &input, std::ostream &output,
   return 0;
 }
 
-} // namespace kyma::cli
+} // namespace kyna::cli

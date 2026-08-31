@@ -1,7 +1,7 @@
-#include "kyma/diagnostics/diagnostic_renderer.hpp"
+#include "kyna/diagnostics/diagnostic_renderer.hpp"
 #include <sstream>
 
-namespace kyma {
+namespace kyna {
 namespace {
 std::string escapeJson(const std::string &value) {
   std::ostringstream escaped;
@@ -85,4 +85,4 @@ std::string renderJsonDiagnostics(const std::vector<Diagnostic> &diagnostics,
   return output.str();
 }
 
-} // namespace kyma
+} // namespace kyna

@@ -1,3 +1,0 @@
-import "./math.ky" as math;
-
-print(math.add(20, 22));

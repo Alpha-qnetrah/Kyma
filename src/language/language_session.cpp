@@ -1,13 +1,13 @@
-#include "kyma/language/language_session.hpp"
-#include "kyma/analyzer.hpp"
-#include "kyma/lexing/tokenizer.hpp"
-#include "kyma/parsing/module_parser.hpp"
+#include "kyna/language/language_session.hpp"
+#include "kyna/analyzer.hpp"
+#include "kyna/lexing/tokenizer.hpp"
+#include "kyna/parsing/module_parser.hpp"
 #include <algorithm>
 #include <sstream>
 #include <string_view>
 #include <type_traits>
 
-namespace kyma {
+namespace kyna {
 namespace {
 bool hasErrors(const std::vector<Diagnostic> &diagnostics) {
   return std::any_of(diagnostics.begin(), diagnostics.end(),
@@ -182,7 +182,7 @@ LanguageResult LanguageSession::runSource(std::string name, std::string source, 
   try {
     executor.runtime().execute(parsed.tree.module.declarations);
     return {std::move(diagnostics), true};
-  } catch (const KymaError &error) {
+  } catch (const KynaError &error) {
     diagnostics.push_back(error.diagnostic);
     return {std::move(diagnostics), false};
   }
@@ -246,4 +246,4 @@ InspectionResult LanguageSession::inspectSyntax(std::string name, std::string so
   return {output.str(), std::move(diagnostics)};
 }
 
-} // namespace kyma
+} // namespace kyna

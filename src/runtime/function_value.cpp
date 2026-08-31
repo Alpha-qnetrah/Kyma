@@ -1,6 +1,6 @@
-#include "kyma/interpreter.hpp"
+#include "kyna/interpreter.hpp"
 
-namespace kyma {
+namespace kyna {
 FunctionPtr Class::findMethod(const std::string &name) const {
   if (auto found = methods.find(name); found != methods.end())
     return found->second;
@@ -11,4 +11,4 @@ Value Function::call(const std::vector<Value> &args, Interpreter &interpreter) {
     return nativeCall(args);
   return interpreter.invoke(std::make_shared<Function>(*this), args, boundThis);
 }
-} // namespace kyma
+} // namespace kyna

@@ -17,4 +17,4 @@ We will acknowledge reports as soon as practical, investigate privately, and coo
 
 ## Scope and safety notes
 
-Kyma executes source code and intentionally exposes opt-in filesystem, process, clock, and network capabilities. Review scripts before running them. The standard library does not provide a sandbox; capability injection is the boundary used by production and deterministic test hosts.
+Kyna executes source code and intentionally exposes opt-in filesystem, process, clock, and network capabilities. Review scripts before running them. The standard library does not provide a sandbox; capability injection is the boundary used by production and deterministic test hosts.

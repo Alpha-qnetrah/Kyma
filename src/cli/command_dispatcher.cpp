@@ -1,9 +1,9 @@
 #include "cli_commands.hpp"
-#include "kyma/diagnostics/diagnostic_renderer.hpp"
+#include "kyna/diagnostics/diagnostic_renderer.hpp"
 #include <fstream>
 #include <sstream>
 
-namespace kyma::cli {
+namespace kyna::cli {
 
 std::string readInput(const std::string &path, std::istream &standardInput, std::string &error) {
   std::ostringstream contents;
@@ -40,18 +40,18 @@ int renderResult(const LanguageResult &result, const Options &options, LanguageS
 int dispatch(const Options &options, std::istream &input, std::ostream &output,
              std::ostream &errors) {
   if (options.command == Command::Invalid) {
-    errors << "kyma: " << options.error << "\nTry 'kyma --help'.\n";
+    errors << "kyna: " << options.error << "\nTry 'kyna --help'.\n";
     return 2;
   }
   if (options.command == Command::Help) {
-    output << "Kyma 0.2.2 language tools\n\n"
+    output << "Kyna 0.3.0 language tools\n\n"
               "Usage:\n"
-              "  kyma run <file|-> [options]\n"
-              "  kyma check <file|-> [options]\n"
-              "  kyma repl\n"
-              "  kyma tokens <file|-> [--format text|json]\n"
-              "  kyma ast <file|-> [--format text|json]\n"
-              "  kyma <file.ky>\n\n"
+              "  kyna run <file|-> [options]\n"
+              "  kyna check <file|-> [options]\n"
+              "  kyna repl\n"
+              "  kyna tokens <file|-> [--format text|json]\n"
+              "  kyna ast <file|-> [--format text|json]\n"
+              "  kyna <file.kyna>\n\n"
               "Options:\n"
               "  --module-path <dir>          Add a module search root (repeatable)\n"
               "  --diagnostic-format <kind>  text or json\n"
@@ -59,7 +59,7 @@ int dispatch(const Options &options, std::istream &input, std::ostream &output,
     return 0;
   }
   if (options.command == Command::Version) {
-    output << "Kyma 0.2.2\n";
+    output << "Kyna 0.3.0\n";
     return 0;
   }
   if (options.command == Command::Repl)
@@ -81,4 +81,4 @@ int dispatch(const Options &options, std::istream &input, std::ostream &output,
   }
 }
 
-} // namespace kyma::cli
+} // namespace kyna::cli

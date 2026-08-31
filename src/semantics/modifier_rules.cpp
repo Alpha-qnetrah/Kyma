@@ -1,8 +1,8 @@
-#include "kyma/behavior.hpp"
+#include "kyna/behavior.hpp"
 #include <algorithm>
 
-namespace kyma {
+namespace kyna {
 bool hasModifier(const std::vector<std::string> &modifiers, const std::string &modifier) {
   return std::find(modifiers.begin(), modifiers.end(), modifier) != modifiers.end();
 }
-} // namespace kyma
+} // namespace kyna

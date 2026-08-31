@@ -1,7 +1,7 @@
-#include "kyma/behavior.hpp"
-#include "kyma/interpreter.hpp"
+#include "kyna/behavior.hpp"
+#include "kyna/interpreter.hpp"
 
-namespace kyma {
+namespace kyna {
 namespace {
 
 std::string decodeQuotedLiteral(const std::string &literal) {
@@ -83,7 +83,7 @@ Value Interpreter::eval(const ExprPtr &e) {
             return Value(-*i);
           if (auto d = std::get_if<double>(&v.data))
             return Value(-*d);
-          throw KymaError({"unary '-' requires a number", {1, 1}, false});
+          throw KynaError({"unary '-' requires a number", {1, 1}, false});
         } else if constexpr (std::is_same_v<T, Binary>) {
           if (n.op == TokenKind::AndAnd) {
             auto l = eval(n.left);
@@ -103,7 +103,7 @@ Value Interpreter::eval(const ExprPtr &e) {
           else if (auto i = std::get_if<Index>(&n.target->node))
             setIndex(i->object, i->index, v);
           else
-            throw KymaError({"invalid assignment target", {1, 1}, false});
+            throw KynaError({"invalid assignment target", {1, 1}, false});
           return v;
         } else if constexpr (std::is_same_v<T, Call>)
           return call(n, n.callee);
@@ -114,11 +114,11 @@ Value Interpreter::eval(const ExprPtr &e) {
           auto index = eval(n.index);
           if (!std::holds_alternative<ArrayPtr>(object.data) ||
               !std::holds_alternative<int64_t>(index.data))
-            throw KymaError({"array indexing requires an integer index", {1, 1}, false});
+            throw KynaError({"array indexing requires an integer index", {1, 1}, false});
           auto array = std::get<ArrayPtr>(object.data);
           auto i = std::get<int64_t>(index.data);
           if (i < 0 || static_cast<size_t>(i) >= array->elements.size())
-            throw KymaError({"array index out of bounds", {1, 1}, false});
+            throw KynaError({"array index out of bounds", {1, 1}, false});
           return array->elements[static_cast<size_t>(i)];
         } else if constexpr (std::is_same_v<T, ArrayExpr>) {
           auto array = objectHeap.allocateArray();
@@ -128,10 +128,10 @@ Value Interpreter::eval(const ExprPtr &e) {
         } else if constexpr (std::is_same_v<T, NewExpr>) {
           auto v = environment->get(n.className).value;
           if (!std::holds_alternative<ClassPtr>(v.data))
-            throw KymaError({"'" + n.className + "' is not a class", {1, 1}, false});
+            throw KynaError({"'" + n.className + "' is not a class", {1, 1}, false});
           auto c = std::get<ClassPtr>(v.data);
           if (hasModifier(c->declaration.modifiers, "abstract"))
-            throw KymaError(
+            throw KynaError(
                 {"cannot instantiate abstract class '" + n.className + "'", {1, 1}, false});
           auto o = objectHeap.allocate();
           o->klass = c;
@@ -155,7 +155,7 @@ Value Interpreter::eval(const ExprPtr &e) {
                 }(),
                 o);
           else if (!n.args.empty())
-            throw KymaError({"constructor takes no arguments", {1, 1}, false});
+            throw KynaError({"constructor takes no arguments", {1, 1}, false});
           return Value(o);
         } else if constexpr (std::is_same_v<T, ObjectExpr>) {
           auto o = objectHeap.allocate();
@@ -181,7 +181,7 @@ Value Interpreter::eval(const ExprPtr &e) {
           for (auto &a : n.arms)
             if (a.wildcard || subject.equals(eval(a.pattern)))
               return eval(a.value);
-          throw KymaError({"non-exhaustive match at runtime", {1, 1}, false});
+          throw KynaError({"non-exhaustive match at runtime", {1, 1}, false});
         } else
           return Value();
       },
@@ -203,12 +203,12 @@ Value Interpreter::binary(TokenKind op, const Value &a, const Value &b) {
                                                             : std::get<double>(a.data)) +
                    (std::holds_alternative<int64_t>(b.data) ? std::get<int64_t>(b.data)
                                                             : std::get<double>(b.data)));
-    throw KymaError({"'+' requires numbers or strings", {1, 1}, false});
+    throw KynaError({"'+' requires numbers or strings", {1, 1}, false});
   }
   bool nums = (std::holds_alternative<int64_t>(a.data) || std::holds_alternative<double>(a.data)) &&
               (std::holds_alternative<int64_t>(b.data) || std::holds_alternative<double>(b.data));
   if (!nums)
-    throw KymaError({"comparison requires numbers", {1, 1}, false});
+    throw KynaError({"comparison requires numbers", {1, 1}, false});
   double x = std::holds_alternative<int64_t>(a.data) ? std::get<int64_t>(a.data)
                                                      : std::get<double>(a.data),
          y = std::holds_alternative<int64_t>(b.data) ? std::get<int64_t>(b.data)
@@ -220,7 +220,7 @@ Value Interpreter::binary(TokenKind op, const Value &a, const Value &b) {
     return Value(x * y);
   case TokenKind::Slash:
     if (y == 0)
-      throw KymaError({"division by zero", {1, 1}, false});
+      throw KynaError({"division by zero", {1, 1}, false});
     return Value(x / y);
   case TokenKind::Percent:
     return Value(static_cast<int64_t>(x) % static_cast<int64_t>(y));
@@ -233,7 +233,7 @@ Value Interpreter::binary(TokenKind op, const Value &a, const Value &b) {
   case TokenKind::GreaterEqual:
     return Value(x >= y);
   default:
-    throw KymaError({"unsupported operator", {1, 1}, false});
+    throw KynaError({"unsupported operator", {1, 1}, false});
   }
 }
 Value Interpreter::call(const Call &c, const ExprPtr &callee) {
@@ -242,7 +242,7 @@ Value Interpreter::call(const Call &c, const ExprPtr &callee) {
   for (auto &e : c.args)
     a.push_back(eval(e));
   if (!std::holds_alternative<FunctionPtr>(v.data))
-    throw KymaError({"value of type '" + v.typeName() + "' is not callable", {1, 1}, false});
+    throw KynaError({"value of type '" + v.typeName() + "' is not callable", {1, 1}, false});
   return invoke(std::get<FunctionPtr>(v.data), a, std::get<FunctionPtr>(v.data)->boundThis);
 }
 Value Interpreter::getMember(const Member &m) {
@@ -253,7 +253,7 @@ Value Interpreter::getMember(const Member &m) {
     auto c = std::get<ClassPtr>(pc.data);
     auto f = c->findMethod(m.name);
     if (!f)
-      throw KymaError({"parent has no member '" + m.name + "'", {1, 1}, false});
+      throw KynaError({"parent has no member '" + m.name + "'", {1, 1}, false});
     auto bound = std::make_shared<Function>(*f);
     bound->boundThis = o;
     return Value(bound);
@@ -277,31 +277,31 @@ Value Interpreter::getMember(const Member &m) {
   }
   if (auto module = std::get_if<ModulePtr>(&obj.data)) {
     if (!*module || !(*module)->exports.contains(m.name))
-      throw KymaError(
+      throw KynaError(
           {"module has no exported member '" + m.name + "'", m.object->location, false, "K5008"});
     return (*module)->environment->get(m.name).value;
   }
-  throw KymaError({"unknown member '" + m.name + "'", {1, 1}, false});
+  throw KynaError({"unknown member '" + m.name + "'", {1, 1}, false});
 }
 void Interpreter::setIndex(const ExprPtr &o, const ExprPtr &i, Value v) {
   auto object = eval(o);
   auto index = eval(i);
   if (!std::holds_alternative<ArrayPtr>(object.data) ||
       !std::holds_alternative<int64_t>(index.data))
-    throw KymaError({"array indexing requires an integer index", {1, 1}, false});
+    throw KynaError({"array indexing requires an integer index", {1, 1}, false});
   auto array = std::get<ArrayPtr>(object.data);
   auto position = std::get<int64_t>(index.data);
   if (position < 0 || static_cast<size_t>(position) >= array->elements.size())
-    throw KymaError({"array index out of bounds", {1, 1}, false});
+    throw KynaError({"array index out of bounds", {1, 1}, false});
   array->elements[static_cast<size_t>(position)] = std::move(v);
 }
 void Interpreter::setMember(const ExprPtr &o, const std::string &n, Value v) {
   auto obj = eval(o);
   if (!std::holds_alternative<ObjectPtr>(obj.data))
-    throw KymaError({"member assignment requires an object", {1, 1}, false});
+    throw KynaError({"member assignment requires an object", {1, 1}, false});
   auto x = std::get<ObjectPtr>(obj.data);
   if (!x->fields.contains(n))
-    throw KymaError({"unknown field '" + n + "' on closed object", {1, 1}, false});
+    throw KynaError({"unknown field '" + n + "' on closed object", {1, 1}, false});
   x->fields[n] = std::move(v);
 }
-} // namespace kyma
+} // namespace kyna

@@ -1,4 +1,4 @@
-# Kyma language specification (v0.2)
+# Kyna language specification (v0.3)
 
 ## Lexical rules
 
@@ -8,9 +8,9 @@ UTF-8 source is tracked with byte-accurate spans; whitespace and indentation hav
 
 `let` creates a mutable, type-locked binding. `set` creates an immutable binding. A type is inferred from an initializer unless written after `:`. `any` is the explicit dynamic escape hatch. The built-ins are `int`, `float`, `num`, `str`, `char`, `bool`, `null`, `void`, and `any`; `int` and `float` are distinct and both are compatible with `num`. Types are non-nullable by default; `T?` is sugar for `T | null`.
 
-```kyma
+```kyna
 let count: int = 1;
-set title = "Kyma";
+set title = "Kyna";
 let maybe: str? = null;
 ```
 
@@ -24,4 +24,4 @@ Parameters always have types and calls always use parentheses. Return annotation
 
 Class inheritance is single-parent. Constructors are named `init`, construction uses `new`, and instance access requires explicit `self`. `super.member` resolves a parent member. Unmodified members are private. `protected` is visible to subclasses and `public` is visible everywhere. Static and instance access are distinct. Overrides require `override`, cannot narrow visibility, and must preserve parameter and return contracts. Final classes/methods cannot be extended/overridden. Abstract signatures end in `;`; concrete classes must resolve all abstract methods.
 
-`intf` declares a structural shape. Classes opt in with `implements A, B`; closed object values are checked structurally when used as interface values. Imports create immutable namespaces and expose only declarations explicitly marked `export`. Traits, generics, richer patterns, streaming/async networking, and a bytecode VM remain outside v0.2.
+`intf` declares a structural shape. Classes opt in with `implements A, B`; closed object values are checked structurally when used as interface values. Imports create immutable namespaces and expose only declarations explicitly marked `export`. Traits, generics, richer patterns, streaming/async networking, and a bytecode VM remain outside v0.3.

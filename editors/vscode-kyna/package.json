@@ -1,0 +1,73 @@
+{
+  "name": "kyna-language-support",
+  "displayName": "Kyna Language Support",
+  "description": "Kyna syntax, completions, live diagnostics, imports, comments, and run/check tools.",
+  "version": "0.3.0",
+  "publisher": "kyna-lang",
+  "license": "MIT",
+  "icon": "assets/kyna-k.png",
+  "galleryBanner": { "color": "#6D4AFF", "theme": "dark" },
+  "keywords": ["kyna", "language", "interpreter", "tree-walk", "diagnostics"],
+  "repository": { "type": "git", "url": "https://github.com/Up-to-code/Kyna.git" },
+  "bugs": { "url": "https://github.com/Up-to-code/Kyna/issues" },
+  "homepage": "https://github.com/Up-to-code/Kyna",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages"],
+  "activationEvents": ["onLanguage:kyna", "onCommand:kyna.runFile", "onCommand:kyna.checkFile"],
+  "main": "./extension.js",
+  "contributes": {
+    "languages": [{
+      "id": "kyna",
+      "aliases": ["Kyna", "kyna"],
+      "extensions": [".kyna", ".ky"],
+      "configuration": "./language-configuration.json",
+      "icon": {
+        "light": "./assets/kyna-file-light.svg",
+        "dark": "./assets/kyna-file-dark.svg"
+      }
+    }],
+    "grammars": [{
+      "language": "kyna",
+      "scopeName": "source.kyna",
+      "path": "./syntaxes/kyna.tmLanguage.json"
+    }],
+    "snippets": [{
+      "language": "kyna",
+      "path": "./snippets/kyna.json"
+    }],
+    "commands": [
+      {
+        "command": "kyna.runFile",
+        "title": "Kyna: Run File",
+        "icon": {
+          "light": "./assets/run-light.svg",
+          "dark": "./assets/run-dark.svg"
+        }
+      },
+      {
+        "command": "kyna.checkFile",
+        "title": "Kyna: Check File",
+        "icon": {
+          "light": "./assets/check-light.svg",
+          "dark": "./assets/check-dark.svg"
+        }
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        { "command": "kyna.runFile", "when": "editorLangId == kyna", "group": "navigation@1" },
+        { "command": "kyna.checkFile", "when": "editorLangId == kyna", "group": "navigation@2" }
+      ]
+    },
+    "configuration": {
+      "title": "Kyna",
+      "properties": {
+        "kyna.executable": {
+          "type": "string",
+          "default": "",
+          "description": "Kyna executable path. Empty auto-detects build/kyna in the workspace, then falls back to PATH."
+        }
+      }
+    }
+  }
+}

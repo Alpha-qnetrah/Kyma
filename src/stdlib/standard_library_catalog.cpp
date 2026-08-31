@@ -1,13 +1,13 @@
 #include "json_value_codec.hpp"
-#include "kyma/behavior.hpp"
-#include "kyma/execution/runtime_capabilities.hpp"
-#include "kyma/interpreter.hpp"
-#include "kyma/stdlib.hpp"
+#include "kyna/behavior.hpp"
+#include "kyna/execution/runtime_capabilities.hpp"
+#include "kyna/interpreter.hpp"
+#include "kyna/stdlib.hpp"
 #include <algorithm>
 #include <cctype>
 #include <map>
 
-namespace kyma {
+namespace kyna {
 
 void installStandardLibrary(Interpreter &interpreter) {
   auto global = interpreter.globals();
@@ -35,13 +35,13 @@ void installStandardLibrary(Interpreter &interpreter) {
   colorLog->nativeCall = [](const std::vector<Value> &a) {
     if (a.size() != 2 || !std::holds_alternative<std::string>(a[0].data) ||
         !std::holds_alternative<std::string>(a[1].data))
-      throw KymaError({"logColor expects a color and message", {1, 1}, false});
+      throw KynaError({"logColor expects a color and message", {1, 1}, false});
     static const std::map<std::string, std::string> colors = {
         {"black", "30"},   {"red", "31"},  {"green", "32"}, {"yellow", "33"}, {"blue", "34"},
         {"magenta", "35"}, {"cyan", "36"}, {"white", "37"}, {"reset", "0"}};
     auto found = colors.find(std::get<std::string>(a[0].data));
     if (found == colors.end())
-      throw KymaError({"unknown log color", {1, 1}, false});
+      throw KynaError({"unknown log color", {1, 1}, false});
     std::cout << "\033[" << found->second << "m" << std::get<std::string>(a[1].data) << "\033[0m\n";
     return Value();
   };
@@ -50,8 +50,8 @@ void installStandardLibrary(Interpreter &interpreter) {
   raise->native = true;
   raise->nativeCall = [](const std::vector<Value> &a) -> Value {
     if (a.size() != 1)
-      throw KymaError({"error expects one message", {1, 1}, false});
-    throw KymaError({a[0].display(), {1, 1}, false});
+      throw KynaError({"error expects one message", {1, 1}, false});
+    throw KynaError({a[0].display(), {1, 1}, false});
   };
   global->define("error", Value(raise), false);
   auto type = std::make_shared<Function>();
@@ -78,21 +78,21 @@ void installStandardLibrary(Interpreter &interpreter) {
   length->native = true;
   length->nativeCall = [](const std::vector<Value> &a) {
     if (a.size() != 1)
-      throw KymaError({"len expects one argument", {1, 1}, false});
+      throw KynaError({"len expects one argument", {1, 1}, false});
     if (auto s = std::get_if<std::string>(&a[0].data))
       return Value(static_cast<int64_t>(s->size()));
     if (auto x = std::get_if<ArrayPtr>(&a[0].data))
       return Value(static_cast<int64_t>((*x)->elements.size()));
     if (auto o = std::get_if<ObjectPtr>(&a[0].data))
       return Value(static_cast<int64_t>((*o)->fields.size()));
-    throw KymaError({"len requires a string, array, or object", {1, 1}, false});
+    throw KynaError({"len requires a string, array, or object", {1, 1}, false});
   };
   global->define("len", Value(length), false);
   auto push = std::make_shared<Function>();
   push->native = true;
   push->nativeCall = [](const std::vector<Value> &a) {
     if (a.size() != 2 || !std::holds_alternative<ArrayPtr>(a[0].data))
-      throw KymaError({"push expects an array and a value", {1, 1}, false});
+      throw KynaError({"push expects an array and a value", {1, 1}, false});
     std::get<ArrayPtr>(a[0].data)->elements.push_back(a[1]);
     return Value();
   };
@@ -101,7 +101,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   pop->native = true;
   pop->nativeCall = [](const std::vector<Value> &a) {
     if (a.size() != 1 || !std::holds_alternative<ArrayPtr>(a[0].data))
-      throw KymaError({"pop expects an array", {1, 1}, false});
+      throw KynaError({"pop expects an array", {1, 1}, false});
     auto array = std::get<ArrayPtr>(a[0].data);
     if (array->elements.empty())
       return Value();
@@ -114,7 +114,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   keys->native = true;
   keys->nativeCall = [&interpreter, global](const std::vector<Value> &a) {
     if (a.size() != 1 || !std::holds_alternative<ObjectPtr>(a[0].data))
-      throw KymaError({"keys expects an object", {1, 1}, false});
+      throw KynaError({"keys expects an object", {1, 1}, false});
     auto array = interpreter.heap().allocateArray();
     for (const auto &[name, value] : std::get<ObjectPtr>(a[0].data)->fields)
       array->elements.emplace_back(name);
@@ -125,11 +125,11 @@ void installStandardLibrary(Interpreter &interpreter) {
   read->native = true;
   read->nativeCall = [capabilities](const std::vector<Value> &a) {
     if (a.size() != 1 || !std::holds_alternative<std::string>(a[0].data))
-      throw KymaError({"readFile expects a path", {1, 1}, false});
+      throw KynaError({"readFile expects a path", {1, 1}, false});
     std::string error;
     auto contents = capabilities.files->read(std::get<std::string>(a[0].data), error);
     if (!contents)
-      throw KymaError({std::move(error), {1, 1}, false});
+      throw KynaError({std::move(error), {1, 1}, false});
     return Value(std::move(*contents));
   };
   global->define("readFile", Value(read), false);
@@ -138,11 +138,11 @@ void installStandardLibrary(Interpreter &interpreter) {
   write->nativeCall = [capabilities](const std::vector<Value> &a) {
     if (a.size() != 2 || !std::holds_alternative<std::string>(a[0].data) ||
         !std::holds_alternative<std::string>(a[1].data))
-      throw KymaError({"writeFile expects path and string content", {1, 1}, false});
+      throw KynaError({"writeFile expects path and string content", {1, 1}, false});
     std::string error;
     if (!capabilities.files->write(std::get<std::string>(a[0].data),
                                    std::get<std::string>(a[1].data), error))
-      throw KymaError({std::move(error), {1, 1}, false});
+      throw KynaError({std::move(error), {1, 1}, false});
     return Value();
   };
   global->define("writeFile", Value(write), false);
@@ -151,10 +151,10 @@ void installStandardLibrary(Interpreter &interpreter) {
   createDirectory->native = true;
   createDirectory->nativeCall = [capabilities](const std::vector<Value> &arguments) {
     if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
-      throw KymaError({"createDirectory expects one path", {1, 1}, false, "K5200"});
+      throw KynaError({"createDirectory expects one path", {1, 1}, false, "K5200"});
     std::string error;
     if (!capabilities.files->createDirectories(std::get<std::string>(arguments[0].data), error))
-      throw KymaError({std::move(error), {1, 1}, false, "K5200"});
+      throw KynaError({std::move(error), {1, 1}, false, "K5200"});
     return Value(true);
   };
   global->define("createDirectory", Value(createDirectory), false);
@@ -163,11 +163,11 @@ void installStandardLibrary(Interpreter &interpreter) {
   fileExists->native = true;
   fileExists->nativeCall = [capabilities](const std::vector<Value> &arguments) {
     if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
-      throw KymaError({"fileExists expects one path", {1, 1}, false, "K5201"});
+      throw KynaError({"fileExists expects one path", {1, 1}, false, "K5201"});
     std::string error;
     const bool found = capabilities.files->exists(std::get<std::string>(arguments[0].data), error);
     if (!error.empty())
-      throw KymaError({std::move(error), {1, 1}, false, "K5201"});
+      throw KynaError({std::move(error), {1, 1}, false, "K5201"});
     return Value(found);
   };
   global->define("fileExists", Value(fileExists), false);
@@ -176,13 +176,13 @@ void installStandardLibrary(Interpreter &interpreter) {
   removePath->native = true;
   removePath->nativeCall = [capabilities](const std::vector<Value> &arguments) {
     if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
-      throw KymaError(
+      throw KynaError(
           {"removePath expects one file or empty-directory path", {1, 1}, false, "K5202"});
     std::string error;
     const bool removed =
         capabilities.files->remove(std::get<std::string>(arguments[0].data), error);
     if (!error.empty())
-      throw KymaError({std::move(error), {1, 1}, false, "K5202"});
+      throw KynaError({std::move(error), {1, 1}, false, "K5202"});
     return Value(removed);
   };
   global->define("removePath", Value(removePath), false);
@@ -191,11 +191,11 @@ void installStandardLibrary(Interpreter &interpreter) {
   listDirectory->native = true;
   listDirectory->nativeCall = [&interpreter, capabilities](const std::vector<Value> &arguments) {
     if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
-      throw KymaError({"listDirectory expects one directory path", {1, 1}, false, "K5203"});
+      throw KynaError({"listDirectory expects one directory path", {1, 1}, false, "K5203"});
     std::string error;
     auto names = capabilities.files->list(std::get<std::string>(arguments[0].data), error);
     if (!names)
-      throw KymaError({std::move(error), {1, 1}, false, "K5203"});
+      throw KynaError({std::move(error), {1, 1}, false, "K5203"});
     auto result = interpreter.heap().allocateArray();
     for (auto &name : *names)
       result->elements.emplace_back(std::move(name));
@@ -207,11 +207,11 @@ void installStandardLibrary(Interpreter &interpreter) {
   readJsonFile->native = true;
   readJsonFile->nativeCall = [&interpreter, capabilities](const std::vector<Value> &arguments) {
     if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
-      throw KymaError({"readJsonFile expects one path", {1, 1}, false, "K5204"});
+      throw KynaError({"readJsonFile expects one path", {1, 1}, false, "K5204"});
     std::string error;
     auto contents = capabilities.files->read(std::get<std::string>(arguments[0].data), error);
     if (!contents)
-      throw KymaError({std::move(error), {1, 1}, false, "K5204"});
+      throw KynaError({std::move(error), {1, 1}, false, "K5204"});
     return parseJsonValue(*contents, interpreter);
   };
   global->define("readJsonFile", Value(readJsonFile), false);
@@ -220,11 +220,11 @@ void installStandardLibrary(Interpreter &interpreter) {
   writeJsonFile->native = true;
   writeJsonFile->nativeCall = [capabilities](const std::vector<Value> &arguments) {
     if (arguments.size() != 2 || !std::holds_alternative<std::string>(arguments[0].data))
-      throw KymaError({"writeJsonFile expects a path and value", {1, 1}, false, "K5205"});
+      throw KynaError({"writeJsonFile expects a path and value", {1, 1}, false, "K5205"});
     std::string error;
     if (!capabilities.files->write(std::get<std::string>(arguments[0].data),
                                    stringifyJsonValue(arguments[1]), error))
-      throw KymaError({std::move(error), {1, 1}, false, "K5205"});
+      throw KynaError({std::move(error), {1, 1}, false, "K5205"});
     return Value(true);
   };
   global->define("writeJsonFile", Value(writeJsonFile), false);
@@ -244,7 +244,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   run->native = true;
   run->nativeCall = [capabilities](const std::vector<Value> &a) {
     if (a.size() != 1 || !std::holds_alternative<std::string>(a[0].data))
-      throw KymaError({"processRun expects a shell command string", {1, 1}, false});
+      throw KynaError({"processRun expects a shell command string", {1, 1}, false});
     return Value(
         static_cast<int64_t>(capabilities.processes->run(std::get<std::string>(a[0].data))));
   };
@@ -254,7 +254,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   environment->native = true;
   environment->nativeCall = [capabilities](const std::vector<Value> &a) {
     if (a.size() != 1 || !std::holds_alternative<std::string>(a[0].data))
-      throw KymaError({"processEnv expects a variable name", {1, 1}, false});
+      throw KynaError({"processEnv expects a variable name", {1, 1}, false});
     auto value = capabilities.processes->environment(std::get<std::string>(a[0].data));
     return value ? Value(std::move(*value)) : Value();
   };
@@ -263,7 +263,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   sleep->native = true;
   sleep->nativeCall = [capabilities](const std::vector<Value> &a) {
     if (a.size() != 1 || !std::holds_alternative<int64_t>(a[0].data))
-      throw KymaError({"sleep expects milliseconds", {1, 1}, false});
+      throw KynaError({"sleep expects milliseconds", {1, 1}, false});
     capabilities.clock->sleep(std::chrono::milliseconds(std::get<int64_t>(a[0].data)));
     return Value();
   };
@@ -273,11 +273,11 @@ void installStandardLibrary(Interpreter &interpreter) {
   get->native = true;
   get->nativeCall = [capabilities](const std::vector<Value> &a) {
     if (a.size() != 1 || !std::holds_alternative<std::string>(a[0].data))
-      throw KymaError({"httpGet expects a URL string", {1, 1}, false});
+      throw KynaError({"httpGet expects a URL string", {1, 1}, false});
     std::string error;
     auto response = capabilities.network->get(std::get<std::string>(a[0].data), error);
     if (!response)
-      throw KymaError(
+      throw KynaError(
           {"GET " + std::get<std::string>(a[0].data) + ": " + std::move(error), {1, 1}, false});
     return Value(std::move(*response));
   };
@@ -287,7 +287,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   jsonParse->native = true;
   jsonParse->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
     if (arguments.size() != 1 || !std::holds_alternative<std::string>(arguments[0].data))
-      throw KymaError({"jsonParse expects one JSON string", {1, 1}, false, "K5100"});
+      throw KynaError({"jsonParse expects one JSON string", {1, 1}, false, "K5100"});
     return parseJsonValue(std::get<std::string>(arguments[0].data), interpreter);
   };
   global->define("jsonParse", Value(jsonParse), false);
@@ -296,7 +296,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   jsonStringify->native = true;
   jsonStringify->nativeCall = [](const std::vector<Value> &arguments) {
     if (arguments.size() != 1)
-      throw KymaError({"jsonStringify expects one value", {1, 1}, false, "K5101"});
+      throw KynaError({"jsonStringify expects one value", {1, 1}, false, "K5101"});
     return Value(stringifyJsonValue(arguments[0]));
   };
   global->define("jsonStringify", Value(jsonStringify), false);
@@ -307,7 +307,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     if (arguments.empty() || arguments.size() > 2 ||
         !std::holds_alternative<std::string>(arguments[0].data) ||
         (arguments.size() == 2 && !std::holds_alternative<ObjectPtr>(arguments[1].data)))
-      throw KymaError({"fetch expects a URL and optional request-options object", {1, 1}, false});
+      throw KynaError({"fetch expects a URL and optional request-options object", {1, 1}, false});
     const auto url = std::get<std::string>(arguments[0].data);
     std::string method = "GET";
     std::optional<std::string> requestBody;
@@ -315,21 +315,21 @@ void installStandardLibrary(Interpreter &interpreter) {
       const auto options = std::get<ObjectPtr>(arguments[1].data);
       if (const auto found = options->fields.find("method"); found != options->fields.end()) {
         if (!std::holds_alternative<std::string>(found->second.data))
-          throw KymaError({"fetch option 'method' must be a string", {1, 1}, false});
+          throw KynaError({"fetch option 'method' must be a string", {1, 1}, false});
         method = std::get<std::string>(found->second.data);
         std::transform(method.begin(), method.end(), method.begin(),
                        [](unsigned char character) { return std::toupper(character); });
       }
       if (const auto found = options->fields.find("body"); found != options->fields.end()) {
         if (!std::holds_alternative<std::string>(found->second.data))
-          throw KymaError({"fetch option 'body' must be a JSON string", {1, 1}, false});
+          throw KynaError({"fetch option 'body' must be a JSON string", {1, 1}, false});
         requestBody = std::get<std::string>(found->second.data);
       }
     }
     std::string error;
     auto body = capabilities.network->request(method, url, requestBody, error);
     if (!body)
-      throw KymaError({method + " " + url + ": " + std::move(error), {1, 1}, false});
+      throw KynaError({method + " " + url + ": " + std::move(error), {1, 1}, false});
     auto response = interpreter.heap().allocate();
     response->fields["ok"] = Value(true);
     response->fields["status"] = Value(std::int64_t{200});
@@ -339,7 +339,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     textMethod->native = true;
     textMethod->nativeCall = [contents = *body](const std::vector<Value> &methodArguments) {
       if (!methodArguments.empty())
-        throw KymaError({"response.text expects no arguments", {1, 1}, false});
+        throw KynaError({"response.text expects no arguments", {1, 1}, false});
       return Value(contents);
     };
     response->fields["text"] = Value(textMethod);
@@ -348,7 +348,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     jsonMethod->nativeCall =
         [&interpreter, contents = std::move(*body)](const std::vector<Value> &methodArguments) {
           if (!methodArguments.empty())
-            throw KymaError({"response.json expects no arguments", {1, 1}, false});
+            throw KynaError({"response.json expects no arguments", {1, 1}, false});
           return parseJsonValue(contents, interpreter);
         };
     response->fields["json"] = Value(jsonMethod);
@@ -361,7 +361,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   filter->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
     if (arguments.size() != 2 || !std::holds_alternative<ArrayPtr>(arguments[0].data) ||
         !std::holds_alternative<FunctionPtr>(arguments[1].data))
-      throw KymaError({"filter expects an array and predicate function", {1, 1}, false});
+      throw KynaError({"filter expects an array and predicate function", {1, 1}, false});
     auto output = interpreter.heap().allocateArray();
     const auto input = std::get<ArrayPtr>(arguments[0].data);
     const auto predicate = std::get<FunctionPtr>(arguments[1].data);
@@ -382,7 +382,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     if (arguments.empty() || arguments.size() > 2 ||
         !std::holds_alternative<ArrayPtr>(arguments[0].data) ||
         (arguments.size() == 2 && !std::holds_alternative<FunctionPtr>(arguments[1].data)))
-      throw KymaError({"bubbleSort expects an array and optional comparator", {1, 1}, false});
+      throw KynaError({"bubbleSort expects an array and optional comparator", {1, 1}, false});
     auto output = interpreter.heap().allocateArray();
     output->elements = std::get<ArrayPtr>(arguments[0].data)->elements;
     const auto comparator =
@@ -407,7 +407,7 @@ void installStandardLibrary(Interpreter &interpreter) {
       if (std::holds_alternative<std::string>(left.data) &&
           std::holds_alternative<std::string>(right.data))
         return std::get<std::string>(left.data) > std::get<std::string>(right.data);
-      throw KymaError({"default bubbleSort supports only numbers or strings", {1, 1}, false});
+      throw KynaError({"default bubbleSort supports only numbers or strings", {1, 1}, false});
     };
     for (std::size_t remaining = output->elements.size(); remaining > 1; --remaining) {
       bool changed = false;
@@ -431,7 +431,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     if (arguments.empty() || arguments.size() > 2 ||
         !std::holds_alternative<FunctionPtr>(arguments[0].data) ||
         (arguments.size() == 2 && !std::holds_alternative<ArrayPtr>(arguments[1].data)))
-      throw KymaError({"call expects a function and optional argument array", {1, 1}, false});
+      throw KynaError({"call expects a function and optional argument array", {1, 1}, false});
     std::vector<Value> invocationArguments;
     if (arguments.size() == 2)
       invocationArguments = std::get<ArrayPtr>(arguments[1].data)->elements;
@@ -450,7 +450,7 @@ void installStandardLibrary(Interpreter &interpreter) {
   createApiStore->native = true;
   createApiStore->nativeCall = [&interpreter](const std::vector<Value> &arguments) {
     if (arguments.size() != 1 || !std::holds_alternative<ArrayPtr>(arguments[0].data))
-      throw KymaError({"createApiStore expects an initial record array", {1, 1}, false});
+      throw KynaError({"createApiStore expects an initial record array", {1, 1}, false});
     auto store = interpreter.heap().allocate();
     store->fields["records"] = arguments[0];
     const auto records = std::get<ArrayPtr>(arguments[0].data);
@@ -459,7 +459,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     list->native = true;
     list->nativeCall = [records](const std::vector<Value> &methodArguments) {
       if (!methodArguments.empty())
-        throw KymaError({"store.list expects no arguments", {1, 1}, false});
+        throw KynaError({"store.list expects no arguments", {1, 1}, false});
       return Value(records);
     };
     store->fields["list"] = Value(list);
@@ -468,7 +468,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     getRecord->native = true;
     getRecord->nativeCall = [records](const std::vector<Value> &methodArguments) {
       if (methodArguments.size() != 1)
-        throw KymaError({"store.get expects an id", {1, 1}, false});
+        throw KynaError({"store.get expects an id", {1, 1}, false});
       for (const auto &record : records->elements)
         if (const auto object = std::get_if<ObjectPtr>(&record.data); object && *object) {
           const auto id = (*object)->fields.find("id");
@@ -484,7 +484,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     createRecord->nativeCall = [records](const std::vector<Value> &methodArguments) {
       if (methodArguments.size() != 1 ||
           !std::holds_alternative<ObjectPtr>(methodArguments[0].data))
-        throw KymaError({"store.create expects an object record", {1, 1}, false});
+        throw KynaError({"store.create expects an object record", {1, 1}, false});
       records->elements.push_back(methodArguments[0]);
       return methodArguments[0];
     };
@@ -495,7 +495,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     updateRecord->nativeCall = [records](const std::vector<Value> &methodArguments) {
       if (methodArguments.size() != 2 ||
           !std::holds_alternative<ObjectPtr>(methodArguments[1].data))
-        throw KymaError({"store.update expects an id and patch object", {1, 1}, false});
+        throw KynaError({"store.update expects an id and patch object", {1, 1}, false});
       for (auto &record : records->elements)
         if (const auto object = std::get_if<ObjectPtr>(&record.data); object && *object) {
           const auto id = (*object)->fields.find("id");
@@ -513,7 +513,7 @@ void installStandardLibrary(Interpreter &interpreter) {
     removeRecord->native = true;
     removeRecord->nativeCall = [records](const std::vector<Value> &methodArguments) {
       if (methodArguments.size() != 1)
-        throw KymaError({"store.remove expects an id", {1, 1}, false});
+        throw KynaError({"store.remove expects an id", {1, 1}, false});
       const auto before = records->elements.size();
       std::erase_if(records->elements, [&](const Value &record) {
         const auto object = std::get_if<ObjectPtr>(&record.data);
@@ -529,4 +529,4 @@ void installStandardLibrary(Interpreter &interpreter) {
   };
   global->define("createApiStore", Value(createApiStore), false);
 }
-} // namespace kyma
+} // namespace kyna

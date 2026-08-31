@@ -1,6 +1,6 @@
 #include "cli_commands.hpp"
 
-namespace kyma::cli {
+namespace kyna::cli {
 
 int runSourceFile(const Options &options, LanguageSession &session, std::istream &input,
                   std::ostream &, std::ostream &errors) {
@@ -9,10 +9,10 @@ int runSourceFile(const Options &options, LanguageSession &session, std::istream
   std::string readError;
   auto source = readInput(options.input, input, readError);
   if (!readError.empty()) {
-    errors << "kyma: " << readError << '\n';
+    errors << "kyna: " << readError << '\n';
     return 2;
   }
   return renderResult(session.runSource("<stdin>", std::move(source)), options, session, errors);
 }
 
-} // namespace kyma::cli
+} // namespace kyna::cli

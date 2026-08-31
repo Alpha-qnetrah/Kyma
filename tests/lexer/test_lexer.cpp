@@ -1,9 +1,9 @@
-#include "kyma/lexer.hpp"
+#include "kyna/lexer.hpp"
 #include <cassert>
 
 int main() {
-  auto tokens = kyma::lex("// comment\nlet values = [1, 2];");
-  assert(tokens[0].kind == kyma::TokenKind::Let);
-  assert(tokens[3].kind == kyma::TokenKind::LeftBracket);
-  assert(tokens.back().kind == kyma::TokenKind::End);
+  auto tokens = kyna::lex("// comment\nlet values = [1, 2];");
+  assert(tokens[0].kind == kyna::TokenKind::Let);
+  assert(tokens[3].kind == kyna::TokenKind::LeftBracket);
+  assert(tokens.back().kind == kyna::TokenKind::End);
 }

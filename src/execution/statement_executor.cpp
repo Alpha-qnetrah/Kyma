@@ -1,8 +1,8 @@
-#include "kyma/behavior.hpp"
-#include "kyma/interpreter.hpp"
-#include "kyma/stdlib.hpp"
+#include "kyna/behavior.hpp"
+#include "kyna/interpreter.hpp"
+#include "kyna/stdlib.hpp"
 
-namespace kyma {
+namespace kyna {
 Interpreter::Interpreter(RuntimeCapabilities runtimeCapabilities)
     : global(std::make_shared<Environment>()), environment(global),
       capabilities(std::move(runtimeCapabilities)) {
@@ -111,7 +111,7 @@ void Interpreter::exec(const StmtPtr &s) {
         } else if constexpr (std::is_same_v<T, TryStmt>) {
           try {
             exec(n.tryBranch);
-          } catch (const KymaError &error) {
+          } catch (const KynaError &error) {
             auto old = environment;
             environment = std::make_shared<Environment>(old);
             environment->define(n.catchName, Value(std::string(error.what())), false);
@@ -120,11 +120,11 @@ void Interpreter::exec(const StmtPtr &s) {
           }
         } else if constexpr (std::is_same_v<T, BreakStmt>) {
           if (loopDepth == 0)
-            throw KymaError({"break must be inside a loop", {1, 1}, false});
+            throw KynaError({"break must be inside a loop", {1, 1}, false});
           flow = {Flow::Break, {}, n.label};
         } else if constexpr (std::is_same_v<T, ContinueStmt>) {
           if (loopDepth == 0)
-            throw KymaError({"continue must be inside a loop", {1, 1}, false});
+            throw KynaError({"continue must be inside a loop", {1, 1}, false});
           flow = {Flow::Continue, {}, n.label};
         } else if constexpr (std::is_same_v<T, ReturnStmt>) {
           flow = {Flow::Return, n.value ? eval(n.value) : Value(), ""};
@@ -139,7 +139,7 @@ void Interpreter::exec(const StmtPtr &s) {
           if (!n.parent.empty()) {
             auto v = environment->get(n.parent).value;
             if (!std::holds_alternative<ClassPtr>(v.data))
-              throw KymaError({"'" + n.parent + "' is not a class", {1, 1}, false});
+              throw KynaError({"'" + n.parent + "' is not a class", {1, 1}, false});
             c->parent = std::get<ClassPtr>(v.data);
           }
           for (auto &field : n.fields)
@@ -164,7 +164,7 @@ Value Interpreter::invoke(const FunctionPtr &f, const std::vector<Value> &args,
   if (f->native)
     return f->nativeCall(args);
   if (args.size() != f->declaration.params.size())
-    throw KymaError({"function '" + f->declaration.name + "' expects " +
+    throw KynaError({"function '" + f->declaration.name + "' expects " +
                          std::to_string(f->declaration.params.size()) + " argument(s)",
                      {1, 1},
                      false});
@@ -185,7 +185,7 @@ Value Interpreter::invoke(const FunctionPtr &f, const std::vector<Value> &args,
     flow = oldFlow;
     environment = old;
     return result;
-  } catch (KymaError &error) {
+  } catch (KynaError &error) {
     const auto location = f->declaration.body ? f->declaration.body->location : SourceSpan{};
     error.diagnostic.callFrames.push_back({f->declaration.name, location});
     flow = oldFlow;
@@ -193,4 +193,4 @@ Value Interpreter::invoke(const FunctionPtr &f, const std::vector<Value> &args,
     throw;
   }
 }
-} // namespace kyma
+} // namespace kyna

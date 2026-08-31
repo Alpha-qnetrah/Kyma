@@ -1,7 +1,7 @@
-#include "kyma/execution/tree_walk_interpreter.hpp"
+#include "kyna/execution/tree_walk_interpreter.hpp"
 #include <algorithm>
 
-namespace kyma {
+namespace kyna {
 
 ExecutionResult TreeWalkInterpreter::execute(const CheckedProgram &program) {
   try {
@@ -31,7 +31,7 @@ ExecutionResult TreeWalkInterpreter::execute(const CheckedProgram &program) {
       initializedModules.insert_or_assign(path, std::move(module));
     }
     return {std::move(last), {}};
-  } catch (const KymaError &error) {
+  } catch (const KynaError &error) {
     auto diagnostic = error.diagnostic;
     if (diagnostic.code == "K0000")
       diagnostic.code = "K5000";
@@ -43,4 +43,4 @@ ExecutionResult TreeWalkInterpreter::execute(const CheckedProgram &program) {
   }
 }
 
-} // namespace kyma
+} // namespace kyna

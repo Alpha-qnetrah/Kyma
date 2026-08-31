@@ -1,6 +1,6 @@
-#include "kyma/words.hpp"
+#include "kyna/words.hpp"
 
-namespace kyma {
+namespace kyna {
 std::string tokenName(TokenKind kind) {
   switch (kind) {
   case TokenKind::End:
@@ -166,4 +166,4 @@ std::string tokenName(TokenKind kind) {
   }
   return "invalid token kind";
 }
-} // namespace kyma
+} // namespace kyna

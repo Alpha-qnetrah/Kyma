@@ -1,8 +1,8 @@
 # Implementation status
 
-This is the v0.2 tree-walking boundary, not a claim that deferred VM-era features exist today.
+This is the v0.3 tree-walking boundary, not a claim that deferred VM-era features exist today.
 
-| Area | v0.2 |
+| Area | v0.3 |
 |---|---|
 | Lexer/parser/source spans | recoverable result interfaces implemented |
 | Semantic analysis | names, types, structural interfaces, member/class contracts |
@@ -14,7 +14,7 @@ This is the v0.2 tree-walking boundary, not a claim that deferred VM-era feature
 | Arrays / closed objects | implemented baseline |
 | try/catch/error and console logging | implemented baseline |
 | Namespace imports/exports | canonical graph, cycles, export-only live namespaces |
-| VS Code `.ky` extension | comments, completion, live diagnostics, Run/Check, package asset |
+| VS Code `.kyna` extension | comments, completion, live diagnostics, Run/Check, package asset |
 | Files, processes, basic HTTP | injected runtime capability ports |
 | HTTPS and HTTP methods | production adapter through system `curl` |
 | Streaming and async networking | future |
