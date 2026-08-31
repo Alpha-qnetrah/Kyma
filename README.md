@@ -83,6 +83,7 @@ func adult(user: any): bool {
 
 set adults = filter(users, adult);
 set ordered = sort(adults);
+fs.createDirectory("output");
 fs.writeJson("output/users.json", ordered);
 ```
 
