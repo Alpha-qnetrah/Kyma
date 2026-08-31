@@ -27,7 +27,7 @@ jobs:
       - name: Package CLI
         run: cpack --config build/CPackConfig.cmake
       - name: Upload CLI archives
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kyma-cli-${{ matrix.os }}
           path: |
@@ -42,7 +42,7 @@ jobs:
       - name: Package VSIX
         run: sh tools/package-vscode.sh
       - name: Upload VSIX
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: kyma-vscode-extension
           path: editors/vscode-kyma/kyma-language-support-*.vsix
