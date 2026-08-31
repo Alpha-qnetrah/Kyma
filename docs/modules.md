@@ -1,12 +1,17 @@
-# Modules and evolution
+# Modules
 
-The v0.1 executable is a single compilation unit. Module loading is intentionally a frontend/runtime milestone rather than an implicit filesystem side effect. The planned design is:
+Kyma v0.2 uses immutable namespace imports:
+
+```kyma
+import "./math.ky" as math;
+export func add(a: int, b: int): int { return a + b; }
+```
 
 - one source file defines a module identity;
 - `export` adds a declaration to the module's public table;
-- `import path` loads and caches a module, analyzes it once, then exposes only exports;
+- `import "path" as name` loads and caches a module, analyzes it once, then exposes only exports;
 - resolution uses the importing file's directory first, followed by configured library roots;
 - cycles are diagnosed with an import stack;
 - module initialization runs once and in dependency order.
 
-The current AST has declaration-level boundaries and the CLI already owns the source-to-pipeline orchestration, so this can be added without changing expression execution or introducing a transpiler.
+Imports must precede other top-level declarations. Only named top-level declarations can be exported. Namespace reads are live, namespace writes are forbidden, and private declarations are not visible. Resolution canonicalizes the importer-relative candidate before checking repeated `--module-path` roots. Cycles report the full filename chain. Dependencies initialize once in postorder.

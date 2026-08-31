@@ -1,8 +1,17 @@
 #include "kyma/analyzer.hpp"
+#include "kyma/behavior.hpp"
+#include <algorithm>
 
 namespace kyma {
 namespace {
 TypeRef t(const std::string &name) { return TypeRef{name, false, {}}; }
+int visibility(const std::vector<std::string> &modifiers) {
+  if (hasModifier(modifiers, "public"))
+    return 2;
+  if (hasModifier(modifiers, "protected"))
+    return 1;
+  return 0;
+}
 } // namespace
 TypeRef Analyzer::expr(const ExprPtr &e) {
   return std::visit(
@@ -31,13 +40,16 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
           if (functions.contains(n.name))
             return t("func");
           if (classes.contains(n.name))
-            return t("class");
+            return t("class:" + n.name);
           return t("any");
         } else if constexpr (std::is_same_v<T, SelfExpr>)
+          return currentClass.empty() ? t("object") : t(currentClass);
+        else if constexpr (std::is_same_v<T, SuperExpr>) {
+          if (!currentClass.empty() && classes.contains(currentClass) &&
+              !classes[currentClass].parent.empty())
+            return t(classes[currentClass].parent);
           return t("object");
-        else if constexpr (std::is_same_v<T, SuperExpr>)
-          return t("object");
-        else if constexpr (std::is_same_v<T, Unary>) {
+        } else if constexpr (std::is_same_v<T, Unary>) {
           auto x = expr(n.right);
           if (n.op == TokenKind::Bang)
             return t("bool");
@@ -92,9 +104,88 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
             }
             return f.hasReturnType ? f.returnType : t("any");
           }
+          if (std::holds_alternative<Member>(n.callee->node))
+            return c;
           return t("any");
         } else if constexpr (std::is_same_v<T, Member>) {
-          expr(n.object);
+          auto objectType = expr(n.object);
+          constexpr std::string_view modulePrefix = "module:";
+          if (objectType.name.starts_with(modulePrefix)) {
+            const auto alias = objectType.name.substr(modulePrefix.size());
+            const auto module = moduleExports.find(alias);
+            if (module == moduleExports.end() || !module->second.contains(n.name)) {
+              error("module '" + alias + "' has no exported member '" + n.name + "'", e->location);
+              return t("any");
+            }
+            return module->second.at(n.name);
+          }
+          if (objectType.name == "any" || objectType.name == "object")
+            return t("any");
+          bool staticAccess = false;
+          std::string className = objectType.name;
+          constexpr std::string_view classPrefix = "class:";
+          if (className.starts_with(classPrefix)) {
+            staticAccess = true;
+            className.erase(0, classPrefix.size());
+          }
+          if (classes.contains(className)) {
+            const ClassDecl *owner = &classes[className];
+            const FieldDecl *field = nullptr;
+            const FunctionDecl *method = nullptr;
+            while (owner) {
+              auto fieldIt =
+                  std::find_if(owner->fields.begin(), owner->fields.end(),
+                               [&](const auto &candidate) { return candidate.name == n.name; });
+              auto methodIt =
+                  std::find_if(owner->methods.begin(), owner->methods.end(),
+                               [&](const auto &candidate) { return candidate.name == n.name; });
+              if (fieldIt != owner->fields.end())
+                field = &*fieldIt;
+              if (methodIt != owner->methods.end())
+                method = &*methodIt;
+              if (field || method)
+                break;
+              if (owner->parent.empty() || !classes.contains(owner->parent))
+                owner = nullptr;
+              else
+                owner = &classes[owner->parent];
+            }
+            const auto *modifiers = field    ? &field->modifiers
+                                    : method ? &method->modifiers
+                                             : nullptr;
+            if (!modifiers) {
+              error("unknown member '" + n.name + "' on '" + className + "'", e->location);
+              return t("any");
+            }
+            if (hasModifier(*modifiers, "static") != staticAccess)
+              error("member '" + n.name + "' must be accessed through " +
+                        std::string(staticAccess ? "an instance" : "the class"),
+                    e->location);
+            const int access = visibility(*modifiers);
+            bool subclassAccess = false;
+            for (auto cursor = currentClass; !cursor.empty() && classes.contains(cursor);
+                 cursor = classes[cursor].parent)
+              if (owner && cursor == owner->name)
+                subclassAccess = true;
+            if (access == 0 && (!owner || currentClass != owner->name))
+              error("private member '" + n.name + "' is not accessible here", e->location);
+            if (access == 1 && (!owner || (!subclassAccess && currentClass != owner->name)))
+              error("protected member '" + n.name + "' is not accessible here", e->location);
+            return field ? field->type : (method->hasReturnType ? method->returnType : t("any"));
+          }
+          if (const auto *contract = interfaces.find(className)) {
+            const auto field =
+                std::find_if(contract->fields.begin(), contract->fields.end(),
+                             [&](const auto &candidate) { return candidate.name == n.name; });
+            if (field != contract->fields.end())
+              return field->type;
+            const auto method =
+                std::find_if(contract->methods.begin(), contract->methods.end(),
+                             [&](const auto &candidate) { return candidate.name == n.name; });
+            if (method != contract->methods.end())
+              return method->returnType;
+          }
+          error("member access requires a class, interface, object, or module", e->location);
           return t("any");
         } else if constexpr (std::is_same_v<T, Index>) {
           auto object = expr(n.object);
@@ -109,10 +200,28 @@ TypeRef Analyzer::expr(const ExprPtr &e) {
             expr(element);
           return t("array");
         } else if constexpr (std::is_same_v<T, NewExpr>) {
+          std::vector<TypeRef> argumentTypes;
           for (auto &a : n.args)
-            expr(a);
-          if (!classes.contains(n.className))
+            argumentTypes.push_back(expr(a));
+          if (!classes.contains(n.className)) {
             error("unknown class '" + n.className + "'", e->location);
+          } else {
+            const auto *initializer = findMethod(classes[n.className], "init");
+            if (!initializer && !n.args.empty())
+              error("constructor for '" + n.className + "' takes no arguments", e->location);
+            if (initializer) {
+              if (initializer->params.size() != n.args.size())
+                error("constructor for '" + n.className + "' expects " +
+                          std::to_string(initializer->params.size()) + " argument(s)",
+                      e->location);
+              for (std::size_t index = 0;
+                   index < std::min(initializer->params.size(), argumentTypes.size()); ++index)
+                if (!compatible(initializer->params[index].type, argumentTypes[index]))
+                  error("constructor argument " + std::to_string(index + 1) + " for '" +
+                            n.className + "' has incompatible type",
+                        n.args[index]->location);
+            }
+          }
           return t(n.className);
         } else if constexpr (std::is_same_v<T, ObjectExpr>) {
           for (auto &f : n.fields)

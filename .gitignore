@@ -5,3 +5,5 @@ build-*/
 .idea/
 *.swp
 *.vsix
+fake-store-output/
+weather-output/

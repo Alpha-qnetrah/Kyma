@@ -1,4 +1,7 @@
-#include "kyma/kyma.hpp"
+#include "kyma/analyzer.hpp"
+#include "kyma/interpreter.hpp"
+#include "kyma/lexer.hpp"
+#include "kyma/parser.hpp"
 #include <cassert>
 #include <iostream>
 #include <sstream>

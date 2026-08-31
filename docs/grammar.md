@@ -3,13 +3,14 @@
 Notation: `*` zero or more, `?` optional.
 
 ```ebnf
-program       ::= declaration* EOF ;
-declaration   ::= modifiers* ( variable | function | class | interface ) | statement ;
+program       ::= import* declaration* EOF ;
+import        ::= "import" STRING "as" IDENT ";" ;
+declaration   ::= "export"? modifiers* ( variable | function | class | interface ) | statement ;
 variable      ::= ("let" | "set") IDENT (":" type)? ("=" expression)? ";" ;
 function      ::= "func" IDENT "(" parameters? ")" (":" type)? block ;
 parameters    ::= IDENT ":" type ("," IDENT ":" type)* ;
-class         ::= "class" IDENT ("extends" IDENT)? "{" class-member* "}" ;
-class-member  ::= modifiers* ("init" | "func" IDENT) "(" parameters? ")" (":" type)? block
+class         ::= "class" IDENT ("extends" IDENT)? ("implements" IDENT ("," IDENT)*)? "{" class-member* "}" ;
+class-member  ::= modifiers* ("init" | "func" IDENT) "(" parameters? ")" (":" type)? (block | ";")
                 | modifiers* IDENT ":" type ("=" expression)? ";" ;
 interface     ::= "intf" IDENT "{" interface-member* "}" ;
 block         ::= "{" (declaration | statement | expression ";")* expression? "}" ;

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Kyma K logo">
+  <rect width="256" height="256" fill="#000"/>
+  <path fill="#fff" d="M56 51h44v65l54-65h54l-70 76 70 75h-54l-54-61v61H56V51Z"/>
+  <path fill="#000" d="M56 115c11 4 17 13 27 13 13 0 20-16 34-16 9 0 16 5 23 11l-7 9c-6-5-10-8-16-8-10 0-18 15-34 15-11 0-18-8-27-12v-12Z"/>
+</svg>

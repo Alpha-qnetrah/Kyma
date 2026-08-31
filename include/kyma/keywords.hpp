@@ -1,5 +1,5 @@
 #pragma once
-#include "kyma/lexer.hpp"
+#include "kyma/lexing/token.hpp"
 #include <string>
 
 namespace kyma {

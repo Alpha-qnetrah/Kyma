@@ -6,6 +6,7 @@ Tests are grouped by the module seam they exercise:
 - `tests/parser` checks AST construction;
 - `tests/runtime` checks environments, object lifetime, and collection;
 - `tests/stdlib` checks host adapters;
+- `tests/v02` checks result interfaces, byte spans, recovery, modules, structural interfaces, access control, and source overlays;
 - `tests/test_kyma.cpp` is the end-to-end language suite.
 
-Each test links against the same `kyma_lib` interface used by the CLI. CTest runs all suites in Debug, Release, and sanitizer builds. This keeps tests on the public module interfaces instead of reaching into implementations.
+Tests link public domain targets through the compatibility aggregate; no test reaches into a private helper. The release and sanitizer configurations run the same CTest inventory.

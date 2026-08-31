@@ -1,5 +1,6 @@
 #pragma once
 #include "kyma/ast.hpp"
+#include "kyma/diagnostics.hpp"
 #include "kyma/interfaces.hpp"
 #include <map>
 #include <memory>
@@ -9,6 +10,12 @@ class Analyzer {
 public:
   std::vector<Diagnostic> analyze(const std::vector<StmtPtr> &program);
   void setInteractive(bool enabled) { interactive = enabled; }
+  void setExternalBindings(std::map<std::string, TypeRef> bindings) {
+    externalBindings = std::move(bindings);
+  }
+  void setModuleExports(std::map<std::string, std::map<std::string, TypeRef>> exports) {
+    moduleExports = std::move(exports);
+  }
 
 private:
   std::vector<Diagnostic> errors;
@@ -20,7 +27,10 @@ private:
   std::shared_ptr<Scope> scope;
   std::map<std::string, FunctionDecl> functions;
   std::map<std::string, ClassDecl> classes;
+  std::map<std::string, TypeRef> externalBindings;
+  std::map<std::string, std::map<std::string, TypeRef>> moduleExports;
   InterfaceCatalog interfaces;
+  std::string currentClass;
   bool interactive{false};
   TypeRef currentReturn{"void", false, {}};
   bool inFunction{false};
@@ -33,5 +43,9 @@ private:
   void error(const std::string &, SourceLocation);
   Scope *bindingScope(const std::string &) const;
   bool alwaysReturns(const StmtPtr &) const;
+  const FieldDecl *findField(const ClassDecl &, const std::string &) const;
+  const FunctionDecl *findMethod(const ClassDecl &, const std::string &) const;
+  bool classConforms(const ClassDecl &, const InterfaceDecl &, SourceLocation);
+  bool objectConforms(const ObjectExpr &, const InterfaceDecl &, SourceLocation);
 };
 } // namespace kyma

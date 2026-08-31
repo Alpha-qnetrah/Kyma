@@ -1,5 +1,5 @@
 #pragma once
-#include "kyma/lexer.hpp"
+#include "kyma/lexing/token.hpp"
 
 namespace kyma {
 std::string tokenName(TokenKind kind);

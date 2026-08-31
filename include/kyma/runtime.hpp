@@ -1,10 +1,12 @@
 #pragma once
 #include "kyma/ast.hpp"
+#include "kyma/diagnostics.hpp"
 #include "kyma/gc.hpp"
 #include <functional>
 #include <map>
 #include <memory>
 #include <optional>
+#include <set>
 #include <variant>
 #include <vector>
 
@@ -13,13 +15,15 @@ struct Object;
 struct Array;
 struct Function;
 struct Class;
+struct ModuleNamespace;
 using ObjectPtr = Object *;
 using ArrayPtr = Array *;
 using FunctionPtr = std::shared_ptr<Function>;
 using ClassPtr = std::shared_ptr<Class>;
+using ModulePtr = std::shared_ptr<ModuleNamespace>;
 struct Value {
   using Data = std::variant<std::nullptr_t, bool, int64_t, double, std::string, char, ObjectPtr,
-                            ArrayPtr, FunctionPtr, ClassPtr>;
+                            ArrayPtr, FunctionPtr, ClassPtr, ModulePtr>;
   Data data{nullptr};
   Value() = default;
   template <class T> Value(T v) : data(std::move(v)) {}
@@ -66,5 +70,10 @@ struct Class {
   std::map<std::string, FunctionPtr> methods;
   std::map<std::string, Value> staticFields;
   FunctionPtr findMethod(const std::string &) const;
+};
+struct ModuleNamespace {
+  std::shared_ptr<Environment> environment;
+  std::set<std::string> exports;
+  std::string displayName;
 };
 } // namespace kyma

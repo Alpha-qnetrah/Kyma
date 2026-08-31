@@ -1,6 +1,6 @@
 # Kyma
 
-Kyma is a small, strongly typed, brace-delimited programming language. This repository contains the v0.1 tree-walking implementation; it executes Kyma ASTs directly and never transpiles source code.
+Kyma is a small, strongly typed, brace-delimited programming language. Version 0.2 is a dependency-free C++23 tree-walking implementation with recoverable diagnostics, namespace modules, structural interfaces, class contracts, a tracing heap, a persistent REPL, and editor tooling. Kyma executes its syntax tree directly; it does not transpile source code.
 
 ## Build
 
@@ -19,7 +19,7 @@ make                 # configure and build Debug
 make test
 make format
 make install         # installs to ~/.local/bin/kyma
-kyma examples/hello.ky
+kyma run examples/hello.ky
 make run FILE=examples/hello.ky
 ```
 
@@ -31,7 +31,7 @@ VS Code support is included and installed with:
 make vscode-install
 ```
 
-It registers `.ky` files with syntax colors, snippets, bracket/comment behavior, and Run/Check commands. `make vscode-package` creates the installable VSIX.
+It registers `.ky` files, `#` line comments, syntax colors, snippets, declarations and import completions, live diagnostics, and Run/Check editor buttons. `make vscode-package` creates the installable VSIX.
 
 Sanitizers (supported by Apple Clang):
 
@@ -43,9 +43,19 @@ cmake --build build-asan && ctest --test-dir build-asan --output-on-failure
 ## Use
 
 ```sh
-./build/kyma examples/hello.ky
-./build/kyma --check examples/hello.ky
-./build/kyma --repl
+./build/kyma run examples/hello.ky
+./build/kyma check examples/hello.ky
+./build/kyma tokens examples/hello.ky --format json
+./build/kyma ast examples/hello.ky
+./build/kyma repl
+./build/kyma run examples/fake_api_store.ky
+./build/kyma run examples/weather_api.ky
 ```
 
-A source file runs only after lexing, parsing, and semantic analysis succeed. Runtime objects use the automatic tracing `Heap`; `collectGarbage()` and `gcStats()` are available for diagnostics. See `docs/` for the language contract and implementation boundaries.
+`kyma file.ky` remains an alias for `kyma run file.ky`. Add module roots with repeated `--module-path`, choose `--diagnostic-format text|json`, and disable ANSI styling with `--no-color`.
+
+A source file runs only after lexing, parsing, module loading, and semantic analysis succeed. Runtime objects use the automatic tracing `ManagedHeap`; `collectGarbage()` and `gcStats()` remain available. See `docs/` for the language contract, architecture, diagnostics schema, and [v0.1 embedding migration](docs/cpp-api-migration.md).
+
+The standard library includes JSON parsing/stringification, a Fetch-style response object, `console.log`, `filter`, `sort`/`bubbleSort`, `call`, process helpers, filesystem/JSON persistence through `fs`, and an in-memory CRUD store. `examples/fake_api_store.ky` exercises GET, POST, PUT, and DELETE against the real Fake Store API and persists results under `fake-store-output/`; HTTPS requests require the system `curl` executable and honor its standard proxy environment variables.
+
+`examples/weather_api.ky` is a keyless live HTTPS smoke test against Open-Meteo. It validates network transport, nested JSON member access, console output, and writing the response to `weather-output/current.json`.

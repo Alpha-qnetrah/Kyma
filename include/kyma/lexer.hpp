@@ -1,91 +1,9 @@
 #pragma once
-#include "kyma/diagnostics.hpp"
+#include "kyma/lexing/token.hpp"
 #include <string>
 #include <vector>
 
 namespace kyma {
-enum class TokenKind {
-  End,
-  Identifier,
-  Int,
-  Float,
-  String,
-  Char,
-  Let,
-  Set,
-  Func,
-  Return,
-  If,
-  Else,
-  While,
-  Loop,
-  Break,
-  Continue,
-  Match,
-  Try,
-  Catch,
-  Class,
-  Extends,
-  Init,
-  New,
-  Self,
-  Super,
-  Public,
-  Private,
-  Protected,
-  Static,
-  Override,
-  Final,
-  Abstract,
-  Intf,
-  Trait,
-  True,
-  False,
-  Null,
-  IntType,
-  FloatType,
-  NumType,
-  StrType,
-  CharType,
-  BoolType,
-  NullType,
-  VoidType,
-  AnyType,
-  Plus,
-  Minus,
-  Star,
-  Slash,
-  Percent,
-  Bang,
-  Equal,
-  EqualEqual,
-  BangEqual,
-  Less,
-  LessEqual,
-  Greater,
-  GreaterEqual,
-  AndAnd,
-  OrOr,
-  Pipe,
-  Question,
-  Dot,
-  Comma,
-  Colon,
-  Semicolon,
-  LeftParen,
-  RightParen,
-  LeftBrace,
-  RightBrace,
-  LeftBracket,
-  RightBracket,
-  Arrow,
-  FatArrow
-};
-struct Token {
-  TokenKind kind;
-  std::string lexeme;
-  SourceLocation location;
-};
+// v0.1 compatibility. New embedders should use tokenize(SourceFile).
 std::vector<Token> lex(const std::string &source);
-std::string tokenName(TokenKind kind);
 } // namespace kyma

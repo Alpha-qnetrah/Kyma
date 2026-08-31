@@ -1,21 +1,29 @@
 #pragma once
 #include "kyma/ast.hpp"
+#include "kyma/diagnostics.hpp"
+#include "kyma/lexer.hpp"
+#include "kyma/parsing/module_parser.hpp"
 #include <vector>
 namespace kyma {
 class Parser {
 public:
   explicit Parser(std::vector<Token> tokens);
   std::vector<StmtPtr> parse();
+  ParseResult parseRecovering(const SourceFile &source);
 
 private:
   std::vector<Token> tokens;
   size_t current{0};
+  std::vector<Diagnostic> diagnostics;
+  bool incomplete{false};
+  bool seenNonImport{false};
   const Token &peek() const;
   const Token &previous() const;
   bool check(TokenKind) const;
   bool match(TokenKind);
   const Token &consume(TokenKind, const std::string &);
   StmtPtr declaration();
+  StmtPtr importDeclaration();
   StmtPtr statement();
   StmtPtr block();
   StmtPtr varDeclaration();
@@ -38,5 +46,7 @@ private:
   std::vector<StmtPtr> parseStatementsUntil(TokenKind end, ExprPtr *tail = nullptr);
   ExprPtr make(Expr::Node node, SourceLocation l);
   StmtPtr make(Stmt::Node node, SourceLocation l);
+  void synchronize();
+  void markExported(const StmtPtr &declaration);
 };
 } // namespace kyma

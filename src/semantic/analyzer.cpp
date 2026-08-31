@@ -6,6 +6,21 @@
 namespace kyma {
 namespace {
 TypeRef t(const std::string &n) { return TypeRef{n, false, {}}; }
+int visibility(const std::vector<std::string> &modifiers) {
+  if (hasModifier(modifiers, "public"))
+    return 2;
+  if (hasModifier(modifiers, "protected"))
+    return 1;
+  return 0;
+}
+bool sameParameters(const FunctionDecl &left, const FunctionDecl &right) {
+  if (left.params.size() != right.params.size())
+    return false;
+  for (std::size_t index = 0; index < left.params.size(); ++index)
+    if (left.params[index].type.str() != right.params[index].type.str())
+      return false;
+  return true;
+}
 } // namespace
 void Analyzer::error(const std::string &m, SourceLocation l) { errors.push_back({m, l, false}); }
 void Analyzer::warning(const std::string &m, SourceLocation l) { errors.push_back({m, l, true}); }
@@ -19,9 +34,12 @@ bool Analyzer::defined(const std::string &n) const {
   return bindingScope(n) != nullptr || functions.contains(n) || classes.contains(n) ||
          n == "print" || n == "typeOf" || n == "collectGarbage" || n == "gcStats" || n == "len" ||
          n == "push" || n == "pop" || n == "keys" || n == "readFile" || n == "writeFile" ||
+         n == "readJsonFile" || n == "writeJsonFile" || n == "createDirectory" ||
+         n == "fileExists" || n == "removePath" || n == "listDirectory" || n == "fs" ||
          n == "processRun" || n == "processEnv" || n == "sleep" || n == "httpGet" || n == "fetch" ||
          n == "build" || n == "wait" || n == "log" || n == "logColor" || n == "console" ||
-         n == "error";
+         n == "error" || n == "filter" || n == "sort" || n == "bubbleSort" || n == "call" ||
+         n == "jsonParse" || n == "jsonStringify" || n == "process" || n == "createApiStore";
 }
 bool Analyzer::compatible(const TypeRef &e, const TypeRef &a) {
   if (e.name == "any" || a.name == "any")
@@ -32,6 +50,8 @@ bool Analyzer::compatible(const TypeRef &e, const TypeRef &a) {
                        [](const auto &x) { return x.name == "null"; });
   if (e.name == "num" && (a.name == "int" || a.name == "float"))
     return true;
+  if (const auto *contract = interfaces.find(e.name); contract && classes.contains(a.name))
+    return classConforms(classes[a.name], *contract, {});
   if (e.name == a.name && (!a.nullable || e.nullable || e.name == "null"))
     return true;
   for (auto &u : e.unionTypes)
@@ -50,6 +70,10 @@ TypeRef Analyzer::merge(const TypeRef &a, const TypeRef &b) {
 std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
   errors.clear();
   scope = std::make_shared<Scope>();
+  for (const auto &[name, type] : externalBindings) {
+    scope->types[name] = type;
+    scope->mutableBindings[name] = false;
+  }
   functions.clear();
   classes.clear();
   interfaces.clear();
@@ -69,7 +93,7 @@ std::vector<Diagnostic> Analyzer::analyze(const std::vector<StmtPtr> &p) {
 }
 void Analyzer::stmt(const StmtPtr &s) {
   std::visit(
-      [this](const auto &n) {
+      [this, &s](const auto &n) {
         using T = std::decay_t<decltype(n)>;
         if constexpr (std::is_same_v<T, VarDecl>) {
           for (auto p = scope->parent; p; p = p->parent)
@@ -79,6 +103,11 @@ void Analyzer::stmt(const StmtPtr &s) {
             }
           if (n.initializer) {
             auto a = expr(n.initializer);
+            if (n.hasType) {
+              if (const auto *contract = interfaces.find(n.type.name))
+                if (const auto *object = std::get_if<ObjectExpr>(&n.initializer->node))
+                  objectConforms(*object, *contract, n.initializer->location);
+            }
             if (n.hasType && !compatible(n.type, a))
               error("initializer of '" + n.name + "' has type " + a.str() + ", expected " +
                         n.type.str(),
@@ -159,6 +188,8 @@ void Analyzer::stmt(const StmtPtr &s) {
           currentReturn = oldReturn;
           inFunction = oldIn;
         } else if constexpr (std::is_same_v<T, ClassDecl>) {
+          if (hasModifier(n.modifiers, "abstract") && hasModifier(n.modifiers, "final"))
+            error("class '" + n.name + "' cannot be both abstract and final", s->location);
           if (!n.parent.empty() && classes.contains(n.parent)) {
             auto &base = classes[n.parent];
             if (hasModifier(base.modifiers, "final"))
@@ -177,14 +208,38 @@ void Analyzer::stmt(const StmtPtr &s) {
                 error("cannot override final method '" + m.name + "'", SourceLocation{});
               if (inherited != base.methods.end() && m.hasReturnType && inherited->hasReturnType &&
                   !compatible(inherited->returnType, m.returnType))
-                error("override return type for '" + m.name + "' is incompatible",
-                      SourceLocation{});
+                error("override return type for '" + m.name + "' is incompatible", s->location);
+              if (inherited != base.methods.end() && !sameParameters(m, *inherited))
+                error("override parameters for '" + m.name + "' must match the inherited method",
+                      s->location);
+              if (inherited != base.methods.end() &&
+                  visibility(m.modifiers) < visibility(inherited->modifiers))
+                error("override of '" + m.name + "' cannot narrow visibility", s->location);
             }
           }
+          for (const auto &contractName : n.interfaces) {
+            const auto *contract = interfaces.find(contractName);
+            if (!contract)
+              error("unknown interface '" + contractName + "'", s->location);
+            else
+              classConforms(n, *contract, s->location);
+          }
+          const bool abstractClass = hasModifier(n.modifiers, "abstract");
           for (auto &m : n.methods) {
+            const bool abstractMethod = hasModifier(m.modifiers, "abstract");
+            if (abstractMethod && !abstractClass)
+              error("abstract method '" + m.name + "' requires an abstract class", s->location);
+            if (abstractMethod && m.body)
+              error("abstract method '" + m.name + "' cannot have a body", s->location);
+            if (!abstractMethod && !m.body)
+              error("concrete method '" + m.name + "' requires a body", s->location);
+            if (!m.body)
+              continue;
             auto old = scope;
             auto oldReturn = currentReturn;
             bool oldIn = inFunction;
+            auto oldClass = currentClass;
+            currentClass = n.name;
             scope = std::make_shared<Scope>();
             scope->parent = old;
             scope->types["self"] = t(n.name);
@@ -207,6 +262,22 @@ void Analyzer::stmt(const StmtPtr &s) {
             scope = old;
             currentReturn = oldReturn;
             inFunction = oldIn;
+            currentClass = std::move(oldClass);
+          }
+          if (!abstractClass && !n.parent.empty() && classes.contains(n.parent)) {
+            for (const auto &inherited : classes[n.parent].methods) {
+              if (!hasModifier(inherited.modifiers, "abstract"))
+                continue;
+              const auto implementation =
+                  std::find_if(n.methods.begin(), n.methods.end(), [&](const FunctionDecl &method) {
+                    return method.name == inherited.name;
+                  });
+              if (implementation == n.methods.end() ||
+                  hasModifier(implementation->modifiers, "abstract"))
+                error("concrete class '" + n.name + "' must implement abstract method '" +
+                          inherited.name + "'",
+                      s->location);
+            }
           }
           if (!n.parent.empty() && !classes.contains(n.parent))
             error("unknown parent class '" + n.parent + "'", {1, 1});
@@ -229,5 +300,77 @@ bool Analyzer::alwaysReturns(const StmtPtr &s) const {
   if (auto i = std::get_if<IfStmt>(&s->node))
     return i->elseBranch && alwaysReturns(i->thenBranch) && alwaysReturns(i->elseBranch);
   return false;
+}
+const FieldDecl *Analyzer::findField(const ClassDecl &klass, const std::string &name) const {
+  const auto found = std::find_if(klass.fields.begin(), klass.fields.end(),
+                                  [&](const auto &field) { return field.name == name; });
+  if (found != klass.fields.end())
+    return &*found;
+  if (!klass.parent.empty()) {
+    const auto parent = classes.find(klass.parent);
+    if (parent != classes.end())
+      return findField(parent->second, name);
+  }
+  return nullptr;
+}
+const FunctionDecl *Analyzer::findMethod(const ClassDecl &klass, const std::string &name) const {
+  const auto found = std::find_if(klass.methods.begin(), klass.methods.end(),
+                                  [&](const auto &method) { return method.name == name; });
+  if (found != klass.methods.end())
+    return &*found;
+  if (!klass.parent.empty()) {
+    const auto parent = classes.find(klass.parent);
+    if (parent != classes.end())
+      return findMethod(parent->second, name);
+  }
+  return nullptr;
+}
+bool Analyzer::classConforms(const ClassDecl &klass, const InterfaceDecl &contract,
+                             SourceLocation location) {
+  bool conforms = true;
+  for (const auto &required : contract.fields) {
+    const auto *field = findField(klass, required.name);
+    if (!field || !compatible(required.type, field->type)) {
+      conforms = false;
+      if (location.known())
+        error("class '" + klass.name + "' does not provide compatible field '" + required.name +
+                  "' required by interface '" + contract.name + "'",
+              location);
+    }
+  }
+  for (const auto &required : contract.methods) {
+    const auto *method = findMethod(klass, required.name);
+    if (!method || !sameParameters(*method, required) ||
+        !compatible(required.returnType, method->returnType) ||
+        visibility(method->modifiers) != 2) {
+      conforms = false;
+      if (location.known())
+        error("class '" + klass.name + "' does not provide compatible public method '" +
+                  required.name + "' required by interface '" + contract.name + "'",
+              location);
+    }
+  }
+  return conforms;
+}
+bool Analyzer::objectConforms(const ObjectExpr &object, const InterfaceDecl &contract,
+                              SourceLocation location) {
+  bool conforms = true;
+  for (const auto &required : contract.fields) {
+    const auto found = std::find_if(object.fields.begin(), object.fields.end(),
+                                    [&](const auto &f) { return f.name == required.name; });
+    if (found == object.fields.end() || !compatible(required.type, expr(found->value))) {
+      conforms = false;
+      error("object does not provide compatible field '" + required.name +
+                "' required by interface '" + contract.name + "'",
+            location);
+    }
+  }
+  if (!contract.methods.empty()) {
+    conforms = false;
+    error("closed object literals cannot provide methods required by interface '" + contract.name +
+              "'",
+          location);
+  }
+  return conforms;
 }
 } // namespace kyma

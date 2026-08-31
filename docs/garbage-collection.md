@@ -1,7 +1,7 @@
 # Automatic garbage collection
 
-Kyma v0.1 adds a small tracing heap for runtime objects. `Heap` owns `Object` storage; `Value` object edges are non-owning pointers. At safe interpreter statement boundaries, `maybeCollect` checks an allocation threshold and runs mark-and-sweep when needed. `collectGarbage()` is also exposed for deterministic tests and diagnostics.
+`ManagedHeap` is the public v0.2 allocation boundary. It owns objects and arrays; `RuntimeValue` stores non-owning references to those nodes. Collection occurs only at interpreter allocation safepoints or through `collectGarbage()`.
 
-Roots are the global environment and the active lexical environment. The marker follows object fields, function receivers and closures, class static fields, and class method closures. Because object edges are non-owning, unreachable reference cycles are reclaimed instead of being leaked by reference counting. Collection never runs in the middle of an expression.
+Roots include globals, module environments, active lexical environments, closures, bound receivers, class state, and module namespaces. Marking uses an iterative worklist, so deep object/array graphs cannot overflow the C++ stack. Because managed object edges are non-owning, unreachable cycles are reclaimed.
 
-The design deliberately separates allocation (`Heap::allocate`) from traversal and policy (`collect`/`maybeCollect`). A future generational or concurrent collector can replace the policy while preserving runtime `Value` and interpreter APIs. `gcStats()` reports live objects and collection count; it is diagnostic information, not language semantics.
+The growth policy uses live heap size rather than lifetime allocation count. C++ `HeapStats` reports live, allocated, reclaimed, collection count, peak live size, and the next threshold. Kyma's existing `gcStats()` string and `collectGarbage()` behavior remain source-compatible.

@@ -1,8 +1,8 @@
-# Kyma language specification (v0.1)
+# Kyma language specification (v0.2)
 
 ## Lexical rules
 
-UTF-8 source is scanned as ordinary characters; whitespace and indentation have no semantic meaning. `//` and `/* ... */` comments are ignored. Blocks use `{}` and ordinary statements end with `;`. Identifiers begin with a letter or `_`. String literals use double quotes and character literals use single quotes.
+UTF-8 source is tracked with byte-accurate spans; whitespace and indentation have no semantic meaning. Python-style `#` line comments are preferred. `//` and `/* ... */` remain accepted. Blocks use `{}` and ordinary statements end with `;`. Identifiers begin with an ASCII letter or `_`. String literals use double quotes and character literals use single quotes.
 
 ## Bindings and types
 
@@ -22,4 +22,6 @@ Parameters always have types and calls always use parentheses. Return annotation
 
 ## Objects and classes
 
-Class inheritance is single-parent. Constructors are named `init`, construction uses `new`, and instance access requires explicit `self`. `super.member` resolves a parent member. Class methods may be `public`, `private`, `protected`, `static`, `override`, `final`, or `abstract` modifiers; the parser preserves modifiers for the semantic checker roadmap. `abstract class` cannot be instantiated. `intf` declares a no-state interface shape. Generic syntax, traits, and complete access/conformance checking are planned extensions, not silently treated as `any`.
+Class inheritance is single-parent. Constructors are named `init`, construction uses `new`, and instance access requires explicit `self`. `super.member` resolves a parent member. Unmodified members are private. `protected` is visible to subclasses and `public` is visible everywhere. Static and instance access are distinct. Overrides require `override`, cannot narrow visibility, and must preserve parameter and return contracts. Final classes/methods cannot be extended/overridden. Abstract signatures end in `;`; concrete classes must resolve all abstract methods.
+
+`intf` declares a structural shape. Classes opt in with `implements A, B`; closed object values are checked structurally when used as interface values. Imports create immutable namespaces and expose only declarations explicitly marked `export`. Traits, generics, richer patterns, streaming/async networking, and a bytecode VM remain outside v0.2.

@@ -1,22 +1,23 @@
 # Implementation status
 
-This is an honest v0.1 boundary, not a claim that every future-language feature exists today.
+This is the v0.2 tree-walking boundary, not a claim that deferred VM-era features exist today.
 
-| Area | v0.1 |
+| Area | v0.2 |
 |---|---|
-| Lexer/parser/AST | implemented |
-| Semantic analysis | primitive/inference/function/basic class checks |
+| Lexer/parser/source spans | recoverable result interfaces implemented |
+| Semantic analysis | names, types, structural interfaces, member/class contracts |
 | Tree-walking runtime | implemented |
-| Automatic tracing heap / cycle collection | implemented baseline |
-| CLI/REPL | implemented |
-| Classes, init, inheritance, self/super | implemented baseline |
-| Interfaces | declaration parsing only |
+| Automatic tracing heap / cycle collection | iterative object/array tracing with live growth policy |
+| CLI/REPL | run/check/repl/tokens/ast; persistent parser-driven REPL |
+| Classes, init, inheritance, self/super | implemented with visibility, override/final, abstract checks |
+| Interfaces | explicit class conformance and structural object assignment |
 | Arrays / closed objects | implemented baseline |
 | try/catch/error and console logging | implemented baseline |
-| VS Code `.ky` extension | implemented and installed |
-| Files, processes, basic HTTP | implemented native standard library |
-| HTTPS/TLS and async networking | future |
+| Namespace imports/exports | canonical graph, cycles, export-only live namespaces |
+| VS Code `.ky` extension | comments, completion, live diagnostics, Run/Check, package asset |
+| Files, processes, basic HTTP | injected runtime capability ports |
+| HTTPS and HTTP methods | production adapter through system `curl` |
+| Streaming and async networking | future |
 | Traits/generics | reserved design surface |
-| Imports/exports | architecture documented; not yet executable |
 | Bytecode VM | future |
-| Formatter/linter | clang-format configured and applied; clang-tidy configuration provided |
+| Formatter/linter | future language tools; C++ clang-format/clang-tidy workflow exists |

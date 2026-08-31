@@ -1,4 +1,5 @@
-#include "kyma/kyma.hpp"
+#include "kyma/parser.hpp"
+#include "kyma/validation.hpp"
 #include <cassert>
 
 int main() {
