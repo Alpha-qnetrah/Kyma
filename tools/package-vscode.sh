@@ -11,7 +11,12 @@ mkdir -p "$tmp/extension"
 cp -R "$ext"/* "$tmp/extension/"
 rm -f "$tmp/extension/"*.vsix
 mkdir -p "$tmp/extension/examples" "$tmp/extension/docs"
-find "$root/examples" -type f -name '*.ky' -exec cp {} "$tmp/extension/examples/" \;
+find "$root/examples" -type f -name '*.ky' -print | while IFS= read -r file; do
+  relative=${file#"$root/examples/"}
+  destination="$tmp/extension/examples/$relative"
+  mkdir -p "$(dirname "$destination")"
+  cp "$file" "$destination"
+done
 cp "$root/docs/language-spec.md" "$root/docs/diagnostics.md" "$root/docs/stdlib.md" \
   "$tmp/extension/docs/"
 cat > "$tmp/[Content_Types].xml" <<'XML'
