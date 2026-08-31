@@ -221,7 +221,7 @@ int main() {
   assert(firstClassMir.ok());
   auto firstClassModule = kyna::compileMirToBytecode(*firstClassMir.program);
   assert(firstClassModule.ok());
-  assert(firstClassModule.module->formatVersion == 4);
+  assert(firstClassModule.module->formatVersion == 5);
   const auto firstClassListing = kyna::disassembleBytecode(*firstClassModule.module);
   assert(firstClassListing.find("load.function") != std::string::npos);
   assert(firstClassListing.find("call.indirect") != std::string::npos);
@@ -319,6 +319,62 @@ int main() {
       kyna::BytecodeVirtualMachine().execute(*indirectArityModule.module);
   assert(!indirectArityResult.ok());
   assert(indirectArityResult.diagnostics.front().code == "KVM2011");
+
+  const auto exceptionSource = sources.add(
+      "bytecode-exceptions",
+      "let marker = 0; try { throw \"boom\"; } catch (failure) { marker = 40; } "
+      "finally { marker = marker + 2; } return marker;");
+  auto exceptionLexed = kyna::tokenize(*sources.find(exceptionSource));
+  auto exceptionParsed =
+      kyna::parseModule(*sources.find(exceptionSource), std::move(exceptionLexed.tokens));
+  auto exceptionHir = kyna::lowerSyntaxToHir("bytecode-exceptions", exceptionParsed.tree);
+  assert(exceptionHir.ok());
+  auto exceptionMir = kyna::lowerHirToMir(*exceptionHir.program);
+  assert(exceptionMir.ok());
+  auto exceptionModule = kyna::compileMirToBytecode(*exceptionMir.program);
+  assert(exceptionModule.ok());
+  const auto exceptionListing = kyna::disassembleBytecode(*exceptionModule.module);
+  assert(exceptionListing.find("throw") != std::string::npos);
+  assert(exceptionListing.find("exception [") != std::string::npos);
+  const auto exceptionResult =
+      kyna::BytecodeVirtualMachine().execute(*exceptionModule.module);
+  assert(exceptionResult.ok());
+  assert(std::get<std::int64_t>(exceptionResult.value.data) == 42);
+
+  const auto crossFrameSource = sources.add(
+      "cross-frame-exceptions",
+      "func fail(): void { throw \"cross-frame\"; } "
+      "try { fail(); return 0; } catch (failure) { return 42; }");
+  auto crossFrameLexed = kyna::tokenize(*sources.find(crossFrameSource));
+  auto crossFrameParsed =
+      kyna::parseModule(*sources.find(crossFrameSource), std::move(crossFrameLexed.tokens));
+  auto crossFrameHir = kyna::lowerSyntaxToHir("cross-frame-exceptions", crossFrameParsed.tree);
+  assert(crossFrameHir.ok());
+  auto crossFrameMir = kyna::lowerHirToMir(*crossFrameHir.program);
+  assert(crossFrameMir.ok());
+  auto crossFrameModule = kyna::compileMirToBytecode(*crossFrameMir.program);
+  assert(crossFrameModule.ok());
+  const auto crossFrameResult =
+      kyna::BytecodeVirtualMachine().execute(*crossFrameModule.module);
+  assert(crossFrameResult.ok());
+  assert(std::get<std::int64_t>(crossFrameResult.value.data) == 42);
+
+  const auto uncaughtSource = sources.add(
+      "uncaught-exception",
+      "func fail(): void { throw \"uncaught\"; } fail();");
+  auto uncaughtLexed = kyna::tokenize(*sources.find(uncaughtSource));
+  auto uncaughtParsed =
+      kyna::parseModule(*sources.find(uncaughtSource), std::move(uncaughtLexed.tokens));
+  auto uncaughtHir = kyna::lowerSyntaxToHir("uncaught-exception", uncaughtParsed.tree);
+  assert(uncaughtHir.ok());
+  auto uncaughtMir = kyna::lowerHirToMir(*uncaughtHir.program);
+  assert(uncaughtMir.ok());
+  auto uncaughtModule = kyna::compileMirToBytecode(*uncaughtMir.program);
+  assert(uncaughtModule.ok());
+  const auto uncaughtResult = kyna::BytecodeVirtualMachine().execute(*uncaughtModule.module);
+  assert(!uncaughtResult.ok());
+  assert(uncaughtResult.diagnostics.front().code == "KVM2301");
+  assert(uncaughtResult.diagnostics.front().callFrames.size() == 2);
 
   kyna::BytecodeModule module;
   module.name = "arithmetic";

@@ -66,4 +66,18 @@ int main() {
   const auto firstClassListing = kyna::renderHir(*firstClassHir.program);
   assert(firstClassListing.find("function @f0") != std::string::npos);
   assert(firstClassListing.find("call.indirect") != std::string::npos);
+
+  const auto exceptionSource = sources.add(
+      "hir-exceptions",
+      "try { throw \"boom\"; } catch (failure) { set recovered = true; } "
+      "finally { set cleaned = true; }");
+  auto exceptionLexed = kyna::tokenize(*sources.find(exceptionSource));
+  auto exceptionParsed =
+      kyna::parseModule(*sources.find(exceptionSource), std::move(exceptionLexed.tokens));
+  auto exceptionHir = kyna::lowerSyntaxToHir("hir-exceptions", exceptionParsed.tree);
+  assert(exceptionHir.ok());
+  const auto exceptionListing = kyna::renderHir(*exceptionHir.program);
+  assert(exceptionListing.find("throw") != std::string::npos);
+  assert(exceptionListing.find(" catch ") != std::string::npos);
+  assert(exceptionListing.find(" finally ") != std::string::npos);
 }

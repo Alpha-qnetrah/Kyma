@@ -100,4 +100,20 @@ int main() {
   const auto firstClassListing = kyna::renderMir(*firstClassMir.program);
   assert(firstClassListing.find("function @f1") != std::string::npos);
   assert(firstClassListing.find("call_indirect") != std::string::npos);
+
+  const auto exceptionSource = sources.add(
+      "mir-exceptions",
+      "try { throw \"boom\"; } catch (failure) { set recovered = true; } "
+      "finally { set cleaned = true; }");
+  auto exceptionLexed = kyna::tokenize(*sources.find(exceptionSource));
+  auto exceptionParsed =
+      kyna::parseModule(*sources.find(exceptionSource), std::move(exceptionLexed.tokens));
+  auto exceptionHir = kyna::lowerSyntaxToHir("mir-exceptions", exceptionParsed.tree);
+  assert(exceptionHir.ok());
+  auto exceptionMir = kyna::lowerHirToMir(*exceptionHir.program);
+  assert(exceptionMir.ok());
+  assert(exceptionMir.program->exceptionRegions.size() == 2);
+  const auto exceptionListing = kyna::renderMir(*exceptionMir.program);
+  assert(exceptionListing.find("throw %t") != std::string::npos);
+  assert(exceptionListing.find("exception [") != std::string::npos);
 }
