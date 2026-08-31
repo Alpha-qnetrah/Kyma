@@ -22,4 +22,6 @@ code --install-extension kyma-language-support-<version>.vsix --force
 
 The VSIX includes the purple Kyma icon, light/dark file and command icons, syntax grammar, snippets, completion rules, examples, and the language/diagnostics/standard-library documentation. The black-and-white branding asset remains included as an alternate asset.
 
+Each release includes `SHA256SUMS`. Verify an archive before extracting or executing it; see [installation-security.md](installation-security.md) for platform-specific commands and the macOS Gatekeeper warning.
+
 Marketplace publication is enabled when the repository has a `VSCE_PAT` secret for the `kyma-lang` publisher. Without that secret, the GitHub release and VSIX remain installable directly.

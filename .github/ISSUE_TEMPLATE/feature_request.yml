@@ -1,0 +1,18 @@
+name: Feature request
+description: Propose a focused language, runtime, CLI, or editor improvement
+title: "[feature] "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem and use case
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Explain syntax, diagnostics, compatibility, and alternatives.
+    validations:
+      required: true

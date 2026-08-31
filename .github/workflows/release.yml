@@ -57,6 +57,8 @@ jobs:
         with:
           path: artifacts
           merge-multiple: true
+      - name: Generate checksums
+        run: sha256sum artifacts/* > artifacts/SHA256SUMS
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
