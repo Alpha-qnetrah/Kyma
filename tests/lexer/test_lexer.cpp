@@ -1,4 +1,4 @@
-#include "kyna/lexer.hpp"
+#include "kyna/lexing/legacy_lexer.hpp"
 #include <cassert>
 
 int main() {

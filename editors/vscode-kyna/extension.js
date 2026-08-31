@@ -47,16 +47,21 @@ const wordCompletions = [
     'readJsonFile', 'writeJsonFile', 'createDirectory', 'fileExists', 'removePath',
     'listDirectory', 'processEnv', 'sleep', 'wait', 'httpGet', 'fetch', 'build',
     'collectGarbage', 'gcStats',
-    'log', 'logColor', 'console', 'error', 'filter', 'sort', 'bubbleSort', 'call', 'jsonParse',
+    'log', 'logColor', 'console', 'error', 'filter', 'sort', 'bubbleSort', 'map', 'reduce',
+    'find', 'any', 'all', 'unique', 'call', 'jsonParse',
     'jsonStringify', 'process', 'createApiStore']
     .map(word => [word, vscode.CompletionItemKind.Function, 'Kyna standard-library function']),
-  ['fs', vscode.CompletionItemKind.Module, 'Kyna filesystem namespace']
+  ['fs', vscode.CompletionItemKind.Module, 'Kyna filesystem namespace'],
+  ['db', vscode.CompletionItemKind.Module, 'Kyna parameterized SQL namespace'],
+  ['collections', vscode.CompletionItemKind.Module, 'Kyna collection algorithms namespace']
 ];
 
 const namespaceMembers = {
   console: ['log'],
   process: ['json', 'stringify', 'run', 'env'],
-  fs: ['read', 'write', 'readJson', 'writeJson', 'createDirectory', 'exists', 'remove', 'list']
+  fs: ['read', 'write', 'readJson', 'writeJson', 'createDirectory', 'exists', 'remove', 'list'],
+  db: ['query', 'execute'],
+  collections: ['map', 'reduce', 'find', 'any', 'all', 'unique']
 };
 
 function executable(document) {
@@ -64,11 +69,19 @@ function executable(document) {
   if (configured) return configured;
   const folder = document ? vscode.workspace.getWorkspaceFolder(document.uri) : undefined;
   const candidates = [];
-  if (folder) candidates.push(path.join(folder.uri.fsPath, 'build', 'kyna'));
+  if (folder) {
+    candidates.push(path.join(folder.uri.fsPath, 'build', 'bin', 'kyna'));
+    candidates.push(path.join(folder.uri.fsPath, 'build', 'tools', 'kyna_cli', 'kyna'));
+    for (const buildName of ['build-debug', 'build-release', 'build-sanitizers', 'build-kyna-v1'])
+      candidates.push(path.join(folder.uri.fsPath, buildName, 'bin', 'kyna'));
+  }
   if (document) {
     let directory = path.dirname(document.fileName);
     for (;;) {
-      candidates.push(path.join(directory, 'build', 'kyna'));
+      candidates.push(path.join(directory, 'build', 'bin', 'kyna'));
+      candidates.push(path.join(directory, 'build', 'tools', 'kyna_cli', 'kyna'));
+      for (const buildName of ['build-debug', 'build-release', 'build-sanitizers', 'build-kyna-v1'])
+        candidates.push(path.join(directory, buildName, 'bin', 'kyna'));
       const parent = path.dirname(directory);
       if (parent === directory) break;
       directory = parent;
@@ -78,7 +91,7 @@ function executable(document) {
 }
 
 function quoteShell(value) {
-  return `"${value.replace(/["\\$`]/g, '\\$&')}"`;
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
 }
 
 async function runActive(command) {
@@ -136,7 +149,9 @@ function validate(document, collection) {
     if (validationProcesses.get(key) !== process) return;
     validationProcesses.delete(key);
     if (document.isClosed || document.version !== documentVersion) return;
-    const jsonStart = output.indexOf('{"version"');
+    const schemaStart = output.indexOf('{"schema":"kyna.diagnostic/v1"');
+    const legacyStart = output.indexOf('{"version"');
+    const jsonStart = schemaStart >= 0 ? schemaStart : legacyStart;
     if (jsonStart < 0) {
       collection.delete(document.uri);
       return;
@@ -184,7 +199,7 @@ function completionItem(definition) {
 async function importPathCompletions(document, position) {
   const before = document.lineAt(position.line).text.slice(0, position.character);
   if (!/\bimport\s+"[^"]*$/.test(before)) return null;
-  const files = await vscode.workspace.findFiles('**/*.{kyna,ky}', '**/{node_modules,build,build-*}/**', 300);
+  const files = await vscode.workspace.findFiles('**/*.kyna', '**/{node_modules,build,build-*}/**', 300);
   return files.map(uri => {
     let relative = path.relative(path.dirname(document.fileName), uri.fsPath).replace(/\\/g, '/');
     if (!relative.startsWith('.')) relative = `./${relative}`;

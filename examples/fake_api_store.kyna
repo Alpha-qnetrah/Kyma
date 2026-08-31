@@ -14,7 +14,7 @@ func productTitle(product: any): str {
 func main(): void {
     try {
         # READ the live product collection and process response.json().
-        set productsResponse = fetch("https://fakestoreapi.com/products?limit=5");
+        set productsResponse = fetch("https://fakestoreapi.com/products?limit=5", { timeout: 15000 });
         set products = productsResponse.json();
         console.log("GET", productsResponse.status, "products", len(products));
 
@@ -39,13 +39,14 @@ func main(): void {
         });
         set createdResponse = fetch("https://fakestoreapi.com/products", {
             method: "POST",
-            body: createBody
+            body: createBody,
+            timeout: 15000
         });
         set created = process.json(createdResponse.text());
         console.log("POST", created.id, created.title);
 
         # READ one product.
-        set productResponse = fetch("https://fakestoreapi.com/products/1");
+        set productResponse = fetch("https://fakestoreapi.com/products/1", { timeout: 15000 });
         set product = productResponse.json();
         console.log("GET one", product.id, product.title);
 
@@ -53,13 +54,15 @@ func main(): void {
         set updateBody = jsonStringify({ title: "Updated by Kyna", price: 50 });
         set updatedResponse = fetch("https://fakestoreapi.com/products/7", {
             method: "PUT",
-            body: updateBody
+            body: updateBody,
+            timeout: 15000
         });
         set updated = updatedResponse.json();
         console.log("PUT", updated.id, updated.title);
 
         set deletedResponse = fetch("https://fakestoreapi.com/products/6", {
-            method: "DELETE"
+            method: "DELETE",
+            timeout: 15000
         });
         set deleted = deletedResponse.json();
         console.log("DELETE", deleted.id);

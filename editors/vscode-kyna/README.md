@@ -1,8 +1,10 @@
 # Kyna VS Code support
 
-Provides canonical `.kyna` and legacy `.ky` language registration, syntax highlighting, Python-style `#` line comments, snippets, keyword and declaration completion, import-path and exported-member completion, live compiler diagnostics, and `Kyna: Run File` / `Kyna: Check File` commands. A Run button appears in the editor title and status bar. Version 0.3.0 also displays compiler best-practice warnings, including unprotected `fetch` and filesystem calls.
+Provides canonical `.kyna` language registration, syntax highlighting, Python-style `#` line comments, snippets, keyword and declaration completion, import-path and exported-member completion, live compiler diagnostics, and `Kyna: Run File` / `Kyna: Check File` commands. A Run button appears in the editor title and status bar. Version 1.0.0 understands the versioned diagnostic schema and compiler best-practice warnings.
 
-The extension uses the purple Kyna K as its marketplace icon and matching purple light/dark `.kyna` file icons. The black-and-white icon remains in `assets/kyna-extension.png` and `assets/kyna-extension.svg`; it is preserved for branding outside the installed extension. Run and Check toolbar icons remain theme-adaptive.
+The extension uses the purple Kyna K as its marketplace icon and matching purple light/dark `.kyna` file icons. The black-and-white icon remains under `assets/legacy/`; it is preserved for branding outside the installed extension. Run and Check toolbar icons remain theme-adaptive.
+
+Packaged examples include first-class functions, mutable/transitive lexical closures, recursion, advanced control flow, backend filesystem/database programs, and real HTTPS clients. The closure example can be inspected with `Kyna: Check File` and run through the same validated bytecode-v4 pipeline used by the CLI.
 
 ## Completion rules
 
@@ -24,7 +26,11 @@ From the repository root:
 This opens a VS Code extension-development window. To package and install permanently, run `make vscode-package`, then:
 
 ```sh
-"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" --install-extension editors/vscode-kyna/kyna-language-support-0.3.0.vsix --force
+"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code" --install-extension editors/vscode-kyna/kyna-language-support-1.0.0.vsix --force
 ```
 
-Set `kyna.executable` if the CLI is not at the workspace's `build/kyna` or on PATH. Live checking sends the unsaved buffer to the CLI together with its real file path, so relative imports resolve without writing temporary source files. The extension deliberately delegates language behavior to the CLI instead of duplicating the compiler.
+Set `kyna.executable` if the CLI is not installed or available in a recognized CMake build directory. Live checking sends the unsaved buffer to the CLI together with its real file path, so relative imports resolve without writing temporary source files. The extension deliberately delegates language behavior to the CLI instead of duplicating the compiler.
+
+## Privacy and security
+
+The extension has no telemetry and does not send source code to an extension-owned service. Live diagnostics launch the configured local Kyna executable and pass the active unsaved buffer over stdin. Run and Check execute only after the document is saved. Kyna programs may themselves use filesystem, process, or network capabilities; review untrusted programs before running them and report vulnerabilities through the repository's private security-advisory flow.

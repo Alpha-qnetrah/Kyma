@@ -2,12 +2,12 @@
   "name": "kyna-language-support",
   "displayName": "Kyna Language Support",
   "description": "Kyna syntax, completions, live diagnostics, imports, comments, and run/check tools.",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "publisher": "kyna-lang",
   "license": "MIT",
   "icon": "assets/kyna-k.png",
   "galleryBanner": { "color": "#6D4AFF", "theme": "dark" },
-  "keywords": ["kyna", "language", "interpreter", "tree-walk", "diagnostics"],
+  "keywords": ["kyna", "language", "bytecode", "backend", "diagnostics"],
   "repository": { "type": "git", "url": "https://github.com/Up-to-code/Kyna.git" },
   "bugs": { "url": "https://github.com/Up-to-code/Kyna/issues" },
   "homepage": "https://github.com/Up-to-code/Kyna",
@@ -19,7 +19,7 @@
     "languages": [{
       "id": "kyna",
       "aliases": ["Kyna", "kyna"],
-      "extensions": [".kyna", ".ky"],
+      "extensions": [".kyna"],
       "configuration": "./language-configuration.json",
       "icon": {
         "light": "./assets/kyna-file-light.svg",
@@ -65,7 +65,7 @@
         "kyna.executable": {
           "type": "string",
           "default": "",
-          "description": "Kyna executable path. Empty auto-detects build/kyna in the workspace, then falls back to PATH."
+          "description": "Kyna executable path. Empty auto-detects build/bin/kyna and preset build directories in the workspace, then falls back to PATH."
         }
       }
     }

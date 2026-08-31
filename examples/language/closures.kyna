@@ -1,0 +1,47 @@
+# Nested functions capture lexical bindings by cell.
+func makeAdder(base: int): any {
+    func add(value: int): int {
+        return base + value;
+    }
+    return add;
+}
+
+func makeCounter(start: int): any {
+    let value = start;
+    func next(): int {
+        value = value + 1;
+        return value;
+    }
+    return next;
+}
+
+func makeFactorial(): any {
+    func factorial(value: int): int {
+        if (value <= 1) {
+            return 1;
+        }
+        return value * factorial(value - 1);
+    }
+    return factorial;
+}
+
+func makeNestedAdder(base: int): any {
+    func middle(): any {
+        func inner(value: int): int {
+            return base + value;
+        }
+        return inner;
+    }
+    return middle();
+}
+
+set addForty = makeAdder(40);
+set firstCounter = makeCounter(0);
+set secondCounter = makeCounter(10);
+set factorial = makeFactorial();
+set nestedAdder = makeNestedAdder(40);
+
+firstCounter();
+firstCounter();
+secondCounter();
+addForty(2) + firstCounter() + secondCounter() + factorial(5) + nestedAdder(2);

@@ -1,0 +1,30 @@
+# Named functions are validated, lowered to bytecode, and invoked with explicit VM frames.
+func factorial(value: int): int {
+    if (value <= 1) {
+        return 1;
+    } else {
+        return value * factorial(value - 1);
+    }
+}
+
+func fibonacci(value: int): int {
+    if (value <= 1) {
+        return value;
+    } else {
+        return fibonacci(value - 1) + fibonacci(value - 2);
+    }
+}
+
+set factorialSix: int = factorial(6);
+set fibonacciTen: int = fibonacci(10);
+
+# Fail loudly if call arguments, return values, recursion, or branching are incorrect.
+if (factorialSix == 720) {
+    if (fibonacciTen == 55) {
+        set verified = true;
+    } else {
+        set invalidFibonacci = 1 / 0;
+    }
+} else {
+    set invalidFactorial = 1 / 0;
+}

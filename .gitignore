@@ -10,3 +10,4 @@ build-*/
 _CPack_Packages/
 fake-store-output/
 weather-output/
+.dependencies/

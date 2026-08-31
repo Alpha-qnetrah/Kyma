@@ -4,7 +4,7 @@ PREFIX ?= $(HOME)/.local
 VSCODE ?= /Applications/Visual Studio Code.app/Contents/Resources/app/bin/code
 VSCODE_EXTENSION_VERSION := $(shell sed -n 's/.*"version": "\([^"]*\)".*/\1/p' editors/vscode-kyna/package.json | head -1)
 
-.PHONY: all configure build release test asan format lint install run vscode-package vscode-install clean
+.PHONY: all configure build release test architecture-check asan format lint install run vscode-package vscode-install clean
 all: build
 
 configure:
@@ -20,13 +20,16 @@ release:
 test: build
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
+architecture-check:
+	python3 build_tools/verify_repository_architecture.py
+
 format:
 	@formatter="$${CLANG_FORMAT:-$$(command -v clang-format 2>/dev/null || echo /opt/homebrew/opt/llvm/bin/clang-format)}"; \
-	"$$formatter" -i $$(find include src tests -type f \( -name '*.hpp' -o -name '*.cpp' \) | sort)
+	"$$formatter" -i $$(find compiler runtime library sdk tools tests -type f \( -name '*.hpp' -o -name '*.cpp' \) | sort)
 
 lint: build
 	@tidy="$${CLANG_TIDY:-$$(command -v clang-tidy 2>/dev/null || echo /opt/homebrew/opt/llvm/bin/clang-tidy)}"; \
-	"$$tidy" $$(find src tests -type f -name '*.cpp' | sort) -- -Iinclude -std=c++23
+	"$$tidy" $$(find compiler runtime library sdk tools tests -type f -name '*.cpp' | sort) -- -std=c++23
 
 asan:
 	cmake -S . -B build-asan -G "$(GENERATOR)" -DCMAKE_BUILD_TYPE=Debug -DKYNA_ENABLE_SANITIZERS=ON
@@ -40,7 +43,7 @@ install: build
 
 run: build
 	@test -n "$(FILE)" || (echo "usage: make run FILE=examples/hello.kyna"; exit 2)
-	./$(BUILD_DIR)/kyna $(FILE)
+	./$(BUILD_DIR)/bin/kyna $(FILE)
 
 vscode-package:
 	sh tools/package-vscode.sh

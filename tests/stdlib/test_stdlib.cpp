@@ -1,6 +1,7 @@
-#include "kyna/interpreter.hpp"
-#include "kyna/parser.hpp"
-#include "kyna/validation.hpp"
+#include "kyna/execution/tree_walk_engine.hpp"
+#include "kyna/parsing/recursive_descent_parser.hpp"
+#include "kyna/semantics/program_validation.hpp"
+#include "kyna/stdlib/standard_library_catalog.hpp"
 #include <cassert>
 
 int main() {
@@ -10,6 +11,7 @@ int main() {
                                         "print(processRun(\"true\"));"))
                      .parse();
   assert(kyna::validate(program).empty());
-  kyna::Interpreter interpreter;
+  kyna::Interpreter interpreter(kyna::productionRuntimeCapabilities(),
+                                kyna::installStandardLibrary);
   interpreter.execute(program);
 }

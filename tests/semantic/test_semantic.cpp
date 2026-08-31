@@ -1,5 +1,6 @@
-#include "kyna/parser.hpp"
-#include "kyna/validation.hpp"
+#include "kyna/parsing/recursive_descent_parser.hpp"
+#include "kyna/semantics/program_validation.hpp"
+#include <algorithm>
 #include <cassert>
 
 int main() {
@@ -10,4 +11,67 @@ int main() {
   auto diagnostics = kyna::validate(invalid);
   assert(!diagnostics.empty());
   assert(!diagnostics.front().warning);
+
+  auto duplicate = kyna::Parser(kyna::lex("let value = 1; let value = 2;")).parse();
+  auto duplicateDiagnostics = kyna::validate(duplicate);
+  assert(std::any_of(duplicateDiagnostics.begin(), duplicateDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1102"; }));
+
+  auto duplicateParameter =
+      kyna::Parser(kyna::lex("func add(value: int, value: int): int { return value; }")).parse();
+  auto parameterDiagnostics = kyna::validate(duplicateParameter);
+  assert(std::any_of(parameterDiagnostics.begin(), parameterDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1104"; }));
+
+  auto wrongCall =
+      kyna::Parser(kyna::lex("func add(value: int): int { return value; } add();")).parse();
+  auto callDiagnostics = kyna::validate(wrongCall);
+  assert(std::any_of(callDiagnostics.begin(), callDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1201"; }));
+
+  auto outsideBreak = kyna::Parser(kyna::lex("break;")).parse();
+  auto outsideBreakDiagnostics = kyna::validate(outsideBreak);
+  assert(std::any_of(outsideBreakDiagnostics.begin(), outsideBreakDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1301"; }));
+
+  auto unknownLabel = kyna::Parser(kyna::lex("loop { break missing; }")).parse();
+  auto unknownLabelDiagnostics = kyna::validate(unknownLabel);
+  assert(std::any_of(unknownLabelDiagnostics.begin(), unknownLabelDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1302"; }));
+
+  auto invalidCondition = kyna::Parser(kyna::lex("while (42) { break; }")).parse();
+  auto conditionDiagnostics = kyna::validate(invalidCondition);
+  assert(std::any_of(conditionDiagnostics.begin(), conditionDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1304"; }));
+
+  auto nonExhaustiveMatch =
+      kyna::Parser(kyna::lex("set value = match (1) { 1 => \"one\"; };")).parse();
+  auto matchDiagnostics = kyna::validate(nonExhaustiveMatch);
+  assert(std::any_of(matchDiagnostics.begin(), matchDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1401"; }));
+
+  auto duplicateMatch = kyna::Parser(
+                            kyna::lex("set value = match (1) { 1 => \"one\"; 1 => \"again\"; "
+                                       "_ => \"other\"; };"))
+                            .parse();
+  auto duplicateMatchDiagnostics = kyna::validate(duplicateMatch);
+  assert(std::any_of(duplicateMatchDiagnostics.begin(), duplicateMatchDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1403"; }));
+
+  auto scopedIfExpression = kyna::Parser(kyna::lex(
+                                      "set value: str = if (true) { let prefix = \"ad\"; "
+                                      "prefix + \"ult\" } else { \"minor\" };"))
+                                .parse();
+  assert(kyna::validate(scopedIfExpression).empty());
+
+  auto nonCallable = kyna::Parser(kyna::lex("set value = 42; value();")).parse();
+  auto nonCallableDiagnostics = kyna::validate(nonCallable);
+  assert(std::any_of(nonCallableDiagnostics.begin(), nonCallableDiagnostics.end(),
+                     [](const auto &diagnostic) { return diagnostic.code == "KSEM1203"; }));
+
+  auto typedError = kyna::Parser(kyna::lex(
+      "func guarded(): str { try { throw \"failure\"; } catch (failure) { "
+      "return failure.code + failure.message; } finally { print(\"cleanup\"); } }"))
+                        .parse();
+  assert(kyna::validate(typedError).empty());
 }

@@ -1,0 +1,22 @@
+function(kyna_configure_target target)
+  target_compile_features(${target} PUBLIC cxx_std_23)
+  if(MSVC)
+    target_compile_options(${target} PRIVATE /W4 /permissive-)
+  else()
+    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+  endif()
+  if(KYNA_ENABLE_SANITIZERS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    target_compile_options(${target} PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
+    target_link_options(${target} PUBLIC -fsanitize=address,undefined)
+  endif()
+endfunction()
+
+function(kyna_add_module target)
+  cmake_parse_arguments(MODULE "" "" "SOURCES;PUBLIC_DEPENDENCIES;PRIVATE_DEPENDENCIES" ${ARGN})
+  add_library(${target} ${MODULE_SOURCES})
+  target_include_directories(${target} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
+  target_link_libraries(${target}
+    PUBLIC ${MODULE_PUBLIC_DEPENDENCIES}
+    PRIVATE ${MODULE_PRIVATE_DEPENDENCIES})
+  kyna_configure_target(${target})
+endfunction()

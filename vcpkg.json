@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "kyna",
+  "version-semver": "1.0.0",
+  "builtin-baseline": "63feddf004cc39169a8b0b7f79c2eba5065d6140",
+  "dependencies": [
+    "boost-asio",
+    "boost-beast",
+    "catch2",
+    "cli11",
+    { "name": "curl", "features": ["ssl"] },
+    "ftxui",
+    "nlohmann-json",
+    "openssl",
+    "libpq",
+    "tomlplusplus",
+    "utf8proc"
+  ]
+}

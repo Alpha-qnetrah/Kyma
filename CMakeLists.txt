@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 3.25)
-project(kyna VERSION 0.3.0 LANGUAGES CXX)
+project(kyna VERSION 1.0.0 LANGUAGES CXX)
+find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -7,109 +8,84 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(KYNA_BUILD_TESTS "Build Kyna tests" ON)
 option(KYNA_ENABLE_SANITIZERS "Enable AddressSanitizer and UBSan" OFF)
+option(KYNA_FETCH_DEPENDENCIES "Fetch missing pinned development dependencies" ON)
 
-function(configure_kyna_library target)
-  target_include_directories(${target} PUBLIC include)
-  target_compile_features(${target} PUBLIC cxx_std_23)
-  if(MSVC)
-    target_compile_options(${target} PRIVATE /W4 /permissive-)
-  else()
-    target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
-  endif()
-  if(KYNA_ENABLE_SANITIZERS AND CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
-    target_compile_options(${target} PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer)
-    target_link_options(${target} PUBLIC -fsanitize=address,undefined)
-  endif()
-endfunction()
+find_package(CLI11 CONFIG QUIET)
+find_package(CURL REQUIRED)
+if(APPLE AND NOT PostgreSQL_ROOT)
+  foreach(KYNA_POSTGRESQL_HINT "/opt/homebrew/opt/libpq" "/usr/local/opt/libpq")
+    if(EXISTS "${KYNA_POSTGRESQL_HINT}/include/libpq-fe.h")
+      set(PostgreSQL_ROOT "${KYNA_POSTGRESQL_HINT}")
+      break()
+    endif()
+  endforeach()
+endif()
+find_package(PostgreSQL QUIET)
+if(NOT CLI11_FOUND AND KYNA_FETCH_DEPENDENCIES)
+  include(FetchContent)
+  FetchContent_Declare(CLI11
+    GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+    GIT_TAG v2.7.2
+    GIT_SHALLOW TRUE)
+  FetchContent_MakeAvailable(CLI11)
+endif()
+if(NOT TARGET CLI11::CLI11)
+  message(FATAL_ERROR "CLI11 is required. Use vcpkg or configure with dependency fetching enabled.")
+endif()
 
-# The target graph is the architecture boundary. Each layer sees only the
-# public headers of the layers to its left:
-# source -> syntax -> modules -> semantics -> execution -> language.
-add_library(kyna_source
-    src/diagnostics/diagnostic_sink.cpp
-    src/diagnostics/compiler_text_renderer.cpp
-    src/diagnostics/json_diagnostic_renderer.cpp
-    src/source/line_index.cpp
-    src/source/source_manager.cpp
-)
-configure_kyna_library(kyna_source)
+find_package(ftxui CONFIG QUIET)
+if(NOT TARGET ftxui::screen AND KYNA_FETCH_DEPENDENCIES)
+  include(FetchContent)
+  set(FTXUI_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+  set(FTXUI_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(FTXUI_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  FetchContent_Declare(ftxui
+    GIT_REPOSITORY https://github.com/ArthurSonzogni/FTXUI.git
+    GIT_TAG v7.0.3
+    GIT_SHALLOW TRUE)
+  FetchContent_MakeAvailable(ftxui)
+endif()
+if(NOT TARGET ftxui::screen)
+  message(FATAL_ERROR "FTXUI is required. Use vcpkg or configure with dependency fetching enabled.")
+endif()
 
-add_library(kyna_syntax
-    src/lexing/legacy_tokenizer_adapter.cpp
-    src/lexing/kyna_tokenizer.cpp
-    src/lexing/keyword_catalog.cpp
-    src/lexing/token_kind_description.cpp
-    src/semantics/type_model.cpp
-    src/parsing/declaration_and_statement_parser.cpp
-    src/parsing/expression_parser.cpp
-    src/parsing/kyna_module_parser.cpp
-)
-configure_kyna_library(kyna_syntax)
-target_link_libraries(kyna_syntax PUBLIC kyna_source)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(KynaModule)
 
-add_library(kyna_modules
-    src/modules/filesystem_module_loader.cpp
-    src/modules/module_graph_builder.cpp
-    src/modules/module_cycle_detector.cpp
-)
-configure_kyna_library(kyna_modules)
-target_link_libraries(kyna_modules PUBLIC kyna_syntax)
-
-add_library(kyna_semantics
-    src/semantic/analyzer.cpp
-    src/semantic/type_checker.cpp
-    src/semantics/best_practice_checker.cpp
-    src/semantics/modifier_rules.cpp
-    src/semantics/interface_catalog.cpp
-    src/semantics/program_validation.cpp
-    src/semantics/module_analyzer.cpp
-)
-configure_kyna_library(kyna_semantics)
-target_link_libraries(kyna_semantics PUBLIC kyna_modules)
-
-add_library(kyna_execution
-    src/execution/module_program_executor.cpp
-    src/execution/production_runtime_capabilities.cpp
-    src/runtime/runtime_value.cpp
-    src/runtime/lexical_environment.cpp
-    src/runtime/function_value.cpp
-    src/memory/managed_heap.cpp
-    src/stdlib/standard_library_catalog.cpp
-    src/stdlib/json_value_codec.cpp
-    src/execution/statement_executor.cpp
-    src/execution/expression_evaluator.cpp
-)
-configure_kyna_library(kyna_execution)
-target_link_libraries(kyna_execution PUBLIC kyna_semantics)
-
-add_library(kyna_language
-    src/language/language_session.cpp
-)
-configure_kyna_library(kyna_language)
-target_link_libraries(kyna_language PUBLIC kyna_execution)
-
-# Pre-v0.3 build compatibility. New embedders should link kyna_language or a
-# narrower domain target instead of the aggregate.
-add_library(kyna_lib INTERFACE)
-target_link_libraries(kyna_lib INTERFACE kyna_language)
-
-add_executable(kyna
-    src/cli/kyna_main.cpp
-    src/cli/cli_argument_parser.cpp
-    src/cli/command_dispatcher.cpp
-    src/cli/source_run_command.cpp
-    src/cli/source_check_command.cpp
-    src/cli/repl_command.cpp
-    src/cli/token_dump_command.cpp
-    src/cli/syntax_dump_command.cpp
-)
-target_link_libraries(kyna PRIVATE kyna_lib)
+# The subdirectory order documents the permitted dependency direction.
+add_subdirectory(compiler/kyna_source)
+add_subdirectory(compiler/kyna_diagnostics)
+add_subdirectory(compiler/kyna_types)
+add_subdirectory(compiler/kyna_lexing)
+add_subdirectory(compiler/kyna_syntax)
+add_subdirectory(compiler/kyna_parsing)
+add_subdirectory(compiler/kyna_resolution)
+add_subdirectory(compiler/kyna_typecheck)
+add_subdirectory(compiler/kyna_hir)
+add_subdirectory(compiler/kyna_mir)
+add_subdirectory(compiler/kyna_bytecode)
+add_subdirectory(runtime/kyna_host)
+add_subdirectory(runtime/kyna_vm)
+add_subdirectory(library/collections)
+add_subdirectory(library/database)
+add_subdirectory(library/core)
+add_subdirectory(sdk/kyna_embedding)
+add_subdirectory(tools/kyna_cli)
 
 if(KYNA_BUILD_TESTS)
   enable_testing()
+  add_test(NAME kyna_repository_architecture
+           COMMAND Python3::Interpreter
+                   "${CMAKE_CURRENT_SOURCE_DIR}/build_tools/verify_repository_architecture.py")
   function(add_kyna_test name source)
     add_executable(${name} ${source})
-    target_link_libraries(${name} PRIVATE kyna_lib)
+    target_link_libraries(${name} PRIVATE kyna_embedding)
+    if(MSVC)
+      target_compile_options(${name} PRIVATE /UNDEBUG)
+    else()
+      target_compile_options(${name} PRIVATE -UNDEBUG)
+    endif()
+    kyna_configure_target(${name})
     add_test(NAME ${name} COMMAND ${name})
   endfunction()
   add_kyna_test(kyna_tests tests/test_kyna.cpp)
@@ -118,19 +94,65 @@ if(KYNA_BUILD_TESTS)
   add_kyna_test(kyna_semantic_tests tests/semantic/test_semantic.cpp)
   add_kyna_test(kyna_runtime_tests tests/runtime/test_runtime.cpp)
   add_kyna_test(kyna_stdlib_tests tests/stdlib/test_stdlib.cpp)
-  add_kyna_test(kyna_v03_language_tests tests/v03/test_language_session.cpp)
+  add_kyna_test(kyna_language_session_tests tests/language_session/test_language_session.cpp)
+  add_kyna_test(kyna_hir_tests tests/hir/test_hir.cpp)
+  add_kyna_test(kyna_mir_tests tests/mir/test_mir.cpp)
+  add_kyna_test(kyna_bytecode_tests tests/bytecode/test_bytecode.cpp)
+  add_test(NAME kyna_cli_options_after_input
+           COMMAND kyna run "${CMAKE_CURRENT_SOURCE_DIR}/examples/hello.kyna" --no-color)
+  add_test(NAME kyna_cli_file_alias
+           COMMAND kyna "${CMAKE_CURRENT_SOURCE_DIR}/examples/hello.kyna" --no-color)
+  add_test(NAME kyna_cli_bytecode
+           COMMAND kyna bytecode "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/arithmetic.kyna"
+                   --no-color)
+  add_test(NAME kyna_cli_hir
+           COMMAND kyna hir "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/arithmetic.kyna"
+                   --no-color)
+  add_test(NAME kyna_cli_mir
+           COMMAND kyna mir "${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/arithmetic.kyna"
+                   --no-color)
+  add_test(NAME kyna_vm_recursive_functions
+           COMMAND kyna run
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/recursive_functions.kyna"
+                   --no-color)
+  add_test(NAME kyna_cli_recursive_bytecode
+           COMMAND kyna bytecode
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/recursive_functions.kyna"
+                   --no-color)
+  add_test(NAME kyna_vm_advanced_control_flow
+           COMMAND kyna run
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/advanced_control_flow.kyna"
+                   --no-color)
+  add_test(NAME kyna_cli_advanced_control_flow_mir
+           COMMAND kyna mir
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/advanced_control_flow.kyna"
+                   --no-color)
+  add_test(NAME kyna_vm_first_class_functions
+           COMMAND kyna run
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/first_class_functions.kyna"
+                   --no-color)
+  add_test(NAME kyna_cli_first_class_bytecode
+           COMMAND kyna bytecode
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/first_class_functions.kyna"
+                   --no-color)
+  add_test(NAME kyna_vm_closures
+           COMMAND kyna run
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/closures.kyna"
+                   --no-color)
+  add_test(NAME kyna_cli_closure_bytecode
+           COMMAND kyna bytecode
+                   "${CMAKE_CURRENT_SOURCE_DIR}/examples/language/closures.kyna"
+                   --no-color)
 endif()
 
 include(GNUInstallDirs)
 install(TARGETS kyna RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 install(FILES README.md LICENSE DESTINATION share/kyna)
 install(DIRECTORY docs DESTINATION share/kyna)
-install(DIRECTORY examples DESTINATION share/kyna
-        FILES_MATCHING PATTERN "*.kyna" PATTERN "*.ky"
-        PATTERN "weather-output" EXCLUDE)
+install(DIRECTORY examples DESTINATION share/kyna FILES_MATCHING PATTERN "*.kyna")
 
 set(CPACK_PACKAGE_NAME "kyna")
-set(CPACK_PACKAGE_VENDOR "kyna-lang")
+set(CPACK_PACKAGE_VENDOR "Up-to-code")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Kyna programming language and CLI")
 set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
 set(CPACK_PACKAGE_INSTALL_DIRECTORY "Kyna")

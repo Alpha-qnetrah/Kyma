@@ -2,7 +2,7 @@
 func main(): void {
     try {
         set endpoint = "https://api.open-meteo.com/v1/forecast?latitude=30.0444&longitude=31.2357&current=temperature_2m,wind_speed_10m";
-        set response = fetch(endpoint);
+        set response = fetch(endpoint, { timeout: 15000 });
         set weather = response.json();
 
         console.log("Open-Meteo", response.status, weather.timezone);

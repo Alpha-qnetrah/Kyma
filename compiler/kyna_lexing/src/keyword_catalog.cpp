@@ -1,0 +1,54 @@
+#include "kyna/lexing/keyword_catalog.hpp"
+#include <map>
+
+namespace kyna {
+TokenKind keywordKind(const std::string &word) {
+  static const std::map<std::string, TokenKind> keywords = {{"let", TokenKind::Let},
+                                                            {"set", TokenKind::Set},
+                                                            {"func", TokenKind::Func},
+                                                            {"return", TokenKind::Return},
+                                                            {"if", TokenKind::If},
+                                                            {"else", TokenKind::Else},
+                                                            {"while", TokenKind::While},
+                                                            {"loop", TokenKind::Loop},
+                                                            {"break", TokenKind::Break},
+                                                            {"continue", TokenKind::Continue},
+                                                            {"match", TokenKind::Match},
+                                                            {"try", TokenKind::Try},
+                                                            {"catch", TokenKind::Catch},
+                                                            {"finally", TokenKind::Finally},
+                                                            {"throw", TokenKind::Throw},
+                                                            {"import", TokenKind::Import},
+                                                            {"export", TokenKind::Export},
+                                                            {"as", TokenKind::As},
+                                                            {"class", TokenKind::Class},
+                                                            {"extends", TokenKind::Extends},
+                                                            {"implements", TokenKind::Implements},
+                                                            {"init", TokenKind::Init},
+                                                            {"new", TokenKind::New},
+                                                            {"self", TokenKind::Self},
+                                                            {"super", TokenKind::Super},
+                                                            {"public", TokenKind::Public},
+                                                            {"private", TokenKind::Private},
+                                                            {"protected", TokenKind::Protected},
+                                                            {"static", TokenKind::Static},
+                                                            {"override", TokenKind::Override},
+                                                            {"final", TokenKind::Final},
+                                                            {"abstract", TokenKind::Abstract},
+                                                            {"intf", TokenKind::Intf},
+                                                            {"trait", TokenKind::Trait},
+                                                            {"true", TokenKind::True},
+                                                            {"false", TokenKind::False},
+                                                            {"null", TokenKind::Null},
+                                                            {"int", TokenKind::IntType},
+                                                            {"float", TokenKind::FloatType},
+                                                            {"num", TokenKind::NumType},
+                                                            {"str", TokenKind::StrType},
+                                                            {"char", TokenKind::CharType},
+                                                            {"bool", TokenKind::BoolType},
+                                                            {"void", TokenKind::VoidType},
+                                                            {"any", TokenKind::AnyType}};
+  auto found = keywords.find(word);
+  return found == keywords.end() ? TokenKind::Identifier : found->second;
+}
+} // namespace kyna

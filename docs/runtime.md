@@ -4,4 +4,4 @@
 
 Calls allocate a child `Environment` containing parameters and (for methods) `self`. The environment chain implements lexical lookup and closures. Assignment searches the chain but refuses immutable cells. `new` allocates an instance, initializes declared fields, and invokes `init`. Objects are owned by the tracing `Heap`; automatic mark-and-sweep runs at safe statement boundaries, and `collectGarbage()` provides an explicit diagnostic hook.
 
-The interpreter is tree-walking by design. No source-to-source translation, host-language eval, or hidden dynamic fallback is used. A bytecode compiler can target the same semantic operations (`load`, `store`, `call`, `get-member`, `branch`, `return`) without changing the source frontend.
+The compatibility interpreter remains tree-walking for constructs not yet migrated. The primary compiler path lowers source through HIR and verified MIR into validated register bytecode. No source-to-source translation, host-language eval, or hidden dynamic fallback is used.

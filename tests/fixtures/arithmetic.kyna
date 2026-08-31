@@ -1,0 +1,3 @@
+set left = 20;
+set right = 22;
+left + right;

@@ -4,7 +4,7 @@ Kyna release archives are built by GitHub Actions on clean Linux, Windows, and m
 
 ## Verify a download
 
-Download the `SHA256SUMS` file and the archive for your platform from the [release page](https://github.com/Alpha-qnetrah/Kyna/releases). From the directory containing both files:
+Download the `SHA256SUMS` file and the archive for your platform from the [release page](https://github.com/Up-to-code/Kyna/releases). From the directory containing both files:
 
 ```sh
 sha256sum --check SHA256SUMS --ignore-missing       # Linux
@@ -14,7 +14,7 @@ shasum -a 256 -c SHA256SUMS                         # macOS
 On Windows PowerShell:
 
 ```powershell
-Get-FileHash .\kyna-0.3.0-Windows-AMD64.zip -Algorithm SHA256
+Get-FileHash .\kyna-1.0.0-Windows-AMD64.zip -Algorithm SHA256
 ```
 
 Compare the printed digest with the published `SHA256SUMS` entry before running the executable.
@@ -26,8 +26,8 @@ The current macOS archive contains a command-line executable, not an iOS app. ma
 First verify the checksum above and make sure the archive came from the Kyna release page. Then extract it and run the CLI from Terminal:
 
 ```sh
-unzip kyna-0.3.0-Darwin-arm64.zip
-cd kyna-0.3.0-Darwin-arm64
+unzip kyna-1.0.0-Darwin-arm64.zip
+cd kyna-1.0.0-Darwin-arm64
 ./bin/kyna --version
 ```
 

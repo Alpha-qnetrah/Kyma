@@ -1,7 +1,8 @@
-#include "kyna/analyzer.hpp"
-#include "kyna/interpreter.hpp"
-#include "kyna/lexer.hpp"
-#include "kyna/parser.hpp"
+#include "kyna/semantics/program_analyzer.hpp"
+#include "kyna/execution/tree_walk_engine.hpp"
+#include "kyna/lexing/legacy_lexer.hpp"
+#include "kyna/parsing/recursive_descent_parser.hpp"
+#include "kyna/stdlib/standard_library_catalog.hpp"
 #include <cassert>
 #include <iostream>
 #include <sstream>
@@ -10,7 +11,7 @@ static void run(const std::string &s) {
   auto p = Parser(lex(s)).parse();
   auto e = Analyzer().analyze(p);
   assert(e.empty());
-  Interpreter i;
+  Interpreter i(productionRuntimeCapabilities(), installStandardLibrary);
   i.execute(p);
 }
 int main() {
@@ -33,6 +34,37 @@ int main() {
   run("print(processRun(\"true\"));");
   run("try { error(\"expected failure\"); } catch (message) { log(message); } "
       "console.log(\"console works\"); logColor(\"green\", \"colored\");");
+  auto exceptionProgram = Parser(lex(
+      "let trace = \"\"; try { trace = trace + \"try:\"; throw \"boom\"; } "
+      "catch (failure) { trace = trace + failure.code + \":\" + failure.message + \":\" + "
+      "failure.cause; } finally { trace = trace + \":finally-1\"; trace = trace + "
+      "\":finally-2\"; } func throughFinally(): str { try { return \"returned\"; } "
+      "finally { trace = trace + \":return-cleanup\"; } } set returned = throughFinally();"))
+                              .parse();
+  assert(Analyzer().analyze(exceptionProgram).empty());
+  Interpreter exceptionInterpreter(productionRuntimeCapabilities(), installStandardLibrary);
+  exceptionInterpreter.execute(exceptionProgram);
+  assert(exceptionInterpreter.currentEnvironment() == exceptionInterpreter.globals());
+  assert(std::get<std::string>(exceptionInterpreter.globals()->get("trace").value.data) ==
+         "try:KRT2301:boom:boom:finally-1:finally-2:return-cleanup");
+  assert(std::get<std::string>(exceptionInterpreter.currentEnvironment()->get("returned").value.data) ==
+         "returned");
+
+  auto uncaughtFinally = Parser(lex(
+      "let cleanup = \"\"; try { throw \"uncaught\"; } finally { "
+      "cleanup = cleanup + \"first\"; cleanup = cleanup + \"-second\"; }"))
+                             .parse();
+  assert(Analyzer().analyze(uncaughtFinally).empty());
+  Interpreter uncaughtInterpreter(productionRuntimeCapabilities(), installStandardLibrary);
+  bool observedUncaught = false;
+  try {
+    uncaughtInterpreter.execute(uncaughtFinally);
+  } catch (const RuntimeThrownError &error) {
+    observedUncaught = error.value && error.value->code == "KRT2301";
+  }
+  assert(observedUncaught);
+  assert(std::get<std::string>(uncaughtInterpreter.globals()->get("cleanup").value.data) ==
+         "first-second");
   run("let n = 2; set text = if (n == 2) { \"yes\" } else { \"no\" }; print(text); print(match (n) "
       "{ 1 => \"one\"; 2 => \"two\"; _ => \"other\"; });");
   auto gcProgram =
@@ -40,7 +72,7 @@ int main() {
                  "n.next = n; return; } loop (let i = 0; i < 300; i = i + 1) { make(); }"))
           .parse();
   assert(Analyzer().analyze(gcProgram).empty());
-  Interpreter gcInterpreter;
+  Interpreter gcInterpreter(productionRuntimeCapabilities(), installStandardLibrary);
   auto baselineObjects = gcInterpreter.heap().live();
   gcInterpreter.heap().setThreshold(1);
   gcInterpreter.execute(gcProgram);

@@ -1,0 +1,200 @@
+#include "kyna/bytecode/bytecode_validator.hpp"
+#include <string>
+
+namespace kyna {
+namespace {
+void report(BytecodeValidationResult &result, std::string code, std::string message,
+            SourceSpan span = {}) {
+  result.diagnostics.emplace_back(std::move(message), span, false, std::move(code));
+  result.diagnostics.back().category = "bytecode";
+}
+
+bool validRegister(std::uint32_t index, const BytecodeFunction &function) {
+  return index < function.registerCount;
+}
+} // namespace
+
+BytecodeValidationResult validateBytecode(const BytecodeModule &module) {
+  BytecodeValidationResult result;
+  if (module.formatVersion != BytecodeModule::FormatVersion)
+    report(result, "KBC1001", "unsupported bytecode format version " +
+                                  std::to_string(module.formatVersion));
+  if (module.functions.empty()) {
+    report(result, "KBC1002", "bytecode module has no functions");
+    return result;
+  }
+  if (module.entryFunction >= module.functions.size())
+    report(result, "KBC1003", "bytecode entry function is out of range");
+  else if (module.functions[module.entryFunction].parameterCount != 0)
+    report(result, "KBC1004", "bytecode entry function cannot require parameters");
+
+  for (const auto &function : module.functions) {
+    if (function.registerCount == 0)
+      report(result, "KBC1101", "function '" + function.name + "' has no registers");
+    if (function.instructions.empty()) {
+      report(result, "KBC1102", "function '" + function.name + "' has no instructions");
+      continue;
+    }
+    if (function.parameterCount > function.registerCount)
+      report(result, "KBC1107", "function '" + function.name +
+                                      "' has more parameters than registers");
+    for (std::size_t offset = 0; offset < function.instructions.size(); ++offset) {
+      const auto &instruction = function.instructions[offset];
+      const auto registerError = [&](std::uint32_t index, const char *role) {
+        if (!validRegister(index, function))
+          report(result, "KBC1103", "instruction " + std::to_string(offset) + " in '" +
+                                        function.name + "' uses an invalid " + role +
+                                        " register",
+                 instruction.span);
+      };
+      switch (instruction.opcode) {
+      case OpCode::LoadConstant:
+        registerError(instruction.destination, "destination");
+        if (instruction.first >= module.constants.size())
+          report(result, "KBC1104", "load-constant index is out of range", instruction.span);
+        break;
+      case OpCode::LoadNull:
+        registerError(instruction.destination, "destination");
+        break;
+      case OpCode::LoadFunction:
+        registerError(instruction.destination, "destination");
+        if (instruction.first >= module.functions.size())
+          report(result, "KBC1112", "function-reference index is out of range",
+                 instruction.span);
+        else if (instruction.first == module.entryFunction)
+          report(result, "KBC1113", "module entry function cannot be used as a value",
+                 instruction.span);
+        break;
+      case OpCode::MakeClosure:
+        registerError(instruction.destination, "closure destination");
+        if (instruction.first >= module.functions.size()) {
+          report(result, "KBC1114", "closure function index is out of range", instruction.span);
+          break;
+        }
+        if (instruction.first == module.entryFunction)
+          report(result, "KBC1115", "module entry function cannot be closed over",
+                 instruction.span);
+        if (instruction.second >= module.closureCaptures.size()) {
+          report(result, "KBC1116", "closure capture-list index is out of range",
+                 instruction.span);
+          break;
+        }
+        if (module.closureCaptures[instruction.second].size() !=
+            module.functions[instruction.first].captureCount)
+          report(result, "KBC1117", "closure capture count does not match function '" +
+                                         module.functions[instruction.first].name + "'",
+                 instruction.span);
+        for (const auto &capture : module.closureCaptures[instruction.second]) {
+          if (capture.kind == BytecodeCaptureSource::Kind::Local)
+            registerError(capture.index, "captured local");
+          else if (capture.index >= function.captureCount)
+            report(result, "KBC1118", "parent capture index is out of range", instruction.span);
+        }
+        break;
+      case OpCode::LoadCapture:
+        registerError(instruction.destination, "capture destination");
+        if (instruction.first >= function.captureCount)
+          report(result, "KBC1119", "capture load index is out of range", instruction.span);
+        break;
+      case OpCode::StoreCapture:
+        registerError(instruction.destination, "capture result");
+        registerError(instruction.second, "capture source");
+        if (instruction.first >= function.captureCount)
+          report(result, "KBC1120", "capture store index is out of range", instruction.span);
+        break;
+      case OpCode::Move:
+        registerError(instruction.destination, "destination");
+        registerError(instruction.first, "source");
+        break;
+      case OpCode::Negate:
+      case OpCode::Not:
+        registerError(instruction.destination, "destination");
+        registerError(instruction.first, "operand");
+        break;
+      case OpCode::Add:
+      case OpCode::Subtract:
+      case OpCode::Multiply:
+      case OpCode::Divide:
+      case OpCode::Remainder:
+      case OpCode::Equal:
+      case OpCode::NotEqual:
+      case OpCode::Less:
+      case OpCode::LessEqual:
+      case OpCode::Greater:
+      case OpCode::GreaterEqual:
+        registerError(instruction.destination, "destination");
+        registerError(instruction.first, "left operand");
+        registerError(instruction.second, "right operand");
+        break;
+      case OpCode::Jump:
+        if (instruction.first >= function.instructions.size())
+          report(result, "KBC1105", "jump target is out of range", instruction.span);
+        break;
+      case OpCode::JumpIfFalse:
+        registerError(instruction.first, "condition");
+        if (instruction.second >= function.instructions.size())
+          report(result, "KBC1105", "conditional jump target is out of range", instruction.span);
+        break;
+      case OpCode::Call:
+        registerError(instruction.destination, "call destination");
+        if (instruction.first >= module.functions.size()) {
+          report(result, "KBC1108", "call function index is out of range", instruction.span);
+          break;
+        }
+        if (instruction.first == module.entryFunction) {
+          report(result, "KBC1111", "module entry function cannot be called", instruction.span);
+          break;
+        }
+        if (instruction.second >= module.callArguments.size()) {
+          report(result, "KBC1109", "call argument-list index is out of range",
+                 instruction.span);
+          break;
+        }
+        if (module.callArguments[instruction.second].size() !=
+            module.functions[instruction.first].parameterCount)
+          report(result, "KBC1110", "call argument count does not match function '" +
+                                         module.functions[instruction.first].name + "'",
+                 instruction.span);
+        for (const auto argument : module.callArguments[instruction.second])
+          registerError(argument, "call argument");
+        break;
+      case OpCode::CallIndirect:
+        registerError(instruction.destination, "call destination");
+        registerError(instruction.first, "callee");
+        if (instruction.second >= module.callArguments.size()) {
+          report(result, "KBC1109", "indirect-call argument-list index is out of range",
+                 instruction.span);
+          break;
+        }
+        for (const auto argument : module.callArguments[instruction.second])
+          registerError(argument, "indirect-call argument");
+        break;
+      case OpCode::Throw:
+        registerError(instruction.first, "thrown value");
+        break;
+      case OpCode::Return:
+        registerError(instruction.first, "return value");
+        break;
+      }
+    }
+    for (const auto &handler : function.exceptionHandlers) {
+      if (handler.instructionCount == 0 ||
+          handler.firstInstruction >= function.instructions.size() ||
+          handler.instructionCount > function.instructions.size() - handler.firstInstruction)
+        report(result, "KBC1121", "exception handler protects an invalid instruction range");
+      if (handler.handlerInstruction >= function.instructions.size())
+        report(result, "KBC1122", "exception handler target is out of range");
+      if (!validRegister(handler.errorRegister, function))
+        report(result, "KBC1123", "exception handler error register is out of range");
+    }
+    const auto finalOpcode = function.instructions.back().opcode;
+    if (finalOpcode != OpCode::Return && finalOpcode != OpCode::Jump &&
+        finalOpcode != OpCode::Throw)
+      report(result, "KBC1106",
+             "function '" + function.name + "' can fall past its final instruction",
+             function.instructions.back().span);
+  }
+  return result;
+}
+
+} // namespace kyna

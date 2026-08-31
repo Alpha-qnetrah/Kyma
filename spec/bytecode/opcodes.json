@@ -1,0 +1,31 @@
+{
+  "formatVersion": 4,
+  "opcodes": [
+    { "enum": "LoadConstant", "mnemonic": "load.constant" },
+    { "enum": "LoadNull", "mnemonic": "load.null" },
+    { "enum": "LoadFunction", "mnemonic": "load.function" },
+    { "enum": "MakeClosure", "mnemonic": "make.closure" },
+    { "enum": "LoadCapture", "mnemonic": "load.capture" },
+    { "enum": "StoreCapture", "mnemonic": "store.capture" },
+    { "enum": "Move", "mnemonic": "move" },
+    { "enum": "Negate", "mnemonic": "negate" },
+    { "enum": "Not", "mnemonic": "not" },
+    { "enum": "Add", "mnemonic": "add" },
+    { "enum": "Subtract", "mnemonic": "subtract" },
+    { "enum": "Multiply", "mnemonic": "multiply" },
+    { "enum": "Divide", "mnemonic": "divide" },
+    { "enum": "Remainder", "mnemonic": "remainder" },
+    { "enum": "Equal", "mnemonic": "equal" },
+    { "enum": "NotEqual", "mnemonic": "not.equal" },
+    { "enum": "Less", "mnemonic": "less" },
+    { "enum": "LessEqual", "mnemonic": "less.equal" },
+    { "enum": "Greater", "mnemonic": "greater" },
+    { "enum": "GreaterEqual", "mnemonic": "greater.equal" },
+    { "enum": "Jump", "mnemonic": "jump" },
+    { "enum": "JumpIfFalse", "mnemonic": "jump.false" },
+    { "enum": "Call", "mnemonic": "call" },
+    { "enum": "CallIndirect", "mnemonic": "call.indirect" },
+    { "enum": "Throw", "mnemonic": "throw" },
+    { "enum": "Return", "mnemonic": "return" }
+  ]
+}

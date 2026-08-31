@@ -1,0 +1,21 @@
+let trace = "";
+try {
+    trace = trace + "try:";
+    throw "boom";
+} catch (failure) {
+    trace = trace + failure.code + ":" + failure.message + ":" + failure.cause;
+} finally {
+    trace = trace + ":finally-1";
+    trace = trace + ":finally-2";
+}
+
+func throughFinally(): str {
+    try {
+        return "returned";
+    } finally {
+        trace = trace + ":return-cleanup";
+    }
+}
+
+set returned = throughFinally();
+console.log(trace, returned);

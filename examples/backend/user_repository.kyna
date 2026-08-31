@@ -1,0 +1,30 @@
+# A repository module: constant SQL owns mapping and callers pass only data.
+
+export func findUserByEmail(connection: str, email: str): any {
+    try {
+        set result = db.query(connection,
+            "SELECT id, email, display_name, active FROM kyna_users WHERE email = $1",
+            [email]);
+        if (len(result.rows) == 0) {
+            return null;
+        }
+        return result.rows[0];
+    } catch (message) {
+        error(message);
+        return null;
+    }
+    return null;
+}
+
+export func saveUser(connection: str, email: str, displayName: str): any {
+    try {
+        set result = db.query(connection,
+            "INSERT INTO kyna_users (email, display_name) VALUES ($1, $2) ON CONFLICT (email) DO UPDATE SET display_name = EXCLUDED.display_name RETURNING id, email, display_name, active",
+            [email, displayName]);
+        return result.rows[0];
+    } catch (message) {
+        error(message);
+        return null;
+    }
+    return null;
+}
