@@ -2,7 +2,7 @@
   "name": "kyma-language-support",
   "displayName": "Kyma Language Support",
   "description": "Kyma syntax, completions, live diagnostics, imports, comments, and run/check tools.",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "kyma-lang",
   "license": "MIT",
   "icon": "assets/kyma-k.png",

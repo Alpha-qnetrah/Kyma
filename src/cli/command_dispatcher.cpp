@@ -44,7 +44,7 @@ int dispatch(const Options &options, std::istream &input, std::ostream &output,
     return 2;
   }
   if (options.command == Command::Help) {
-    output << "Kyma 0.2.1 language tools\n\n"
+    output << "Kyma 0.2.2 language tools\n\n"
               "Usage:\n"
               "  kyma run <file|-> [options]\n"
               "  kyma check <file|-> [options]\n"
@@ -59,7 +59,7 @@ int dispatch(const Options &options, std::istream &input, std::ostream &output,
     return 0;
   }
   if (options.command == Command::Version) {
-    output << "Kyma 0.2.1\n";
+    output << "Kyma 0.2.2\n";
     return 0;
   }
   if (options.command == Command::Repl)

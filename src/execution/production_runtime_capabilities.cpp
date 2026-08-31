@@ -1,6 +1,7 @@
 #include "kyma/execution/runtime_capabilities.hpp"
 #include <algorithm>
 #include <cstdlib>
+#include <cstdio>
 #include <fstream>
 #include <sstream>
 #include <thread>
@@ -102,7 +103,13 @@ public:
     if (url == "mock://kyma/users")
       return std::string(
           R"([{"id":1,"name":"Ada","active":true},{"id":2,"name":"Linus","active":false},{"id":3,"name":"Grace","active":true}])");
-#if !defined(__unix__) && !defined(__APPLE__)
+#if defined(_WIN32)
+    if (!url.starts_with("http://") && !url.starts_with("https://")) {
+      error = "unsupported URL scheme";
+      return std::nullopt;
+    }
+    return curlRequest(method, url, body, error);
+#elif !defined(__unix__) && !defined(__APPLE__)
     error = "network requests are unavailable on this platform";
     return std::nullopt;
 #else
@@ -167,6 +174,59 @@ public:
   }
 
 private:
+#if defined(_WIN32)
+  static std::string windowsShellQuote(const std::string &value) {
+    // CommandLineToArgvW-compatible quoting for the arguments passed to the
+    // Windows curl executable. This keeps URLs and JSON request bodies intact.
+    std::string quoted{"\""};
+    std::size_t backslashes = 0;
+    for (const char character : value) {
+      if (character == '\\') {
+        ++backslashes;
+      } else if (character == '"') {
+        quoted.append(backslashes * 2 + 1, '\\');
+        quoted.push_back('"');
+        backslashes = 0;
+      } else {
+        quoted.append(backslashes, '\\');
+        quoted.push_back(character);
+        backslashes = 0;
+      }
+    }
+    quoted.append(backslashes * 2, '\\');
+    quoted.push_back('"');
+    return quoted;
+  }
+
+  static std::optional<std::string> curlRequest(const std::string &method, const std::string &url,
+                                                const std::optional<std::string> &body,
+                                                std::string &error) {
+    std::string command =
+        "curl --fail-with-body --silent --show-error --location --retry 2 "
+        "--retry-all-errors --retry-delay 1 --connect-timeout 10 --max-time 30 "
+        "--user-agent Kyma/0.2.2 --http1.1 --request " + windowsShellQuote(method);
+    if (body)
+      command += " --header " + windowsShellQuote("Content-Type: application/json") +
+                 " --data " + windowsShellQuote(*body);
+    command += " " + windowsShellQuote(url) + " 2>&1";
+
+    FILE *pipe = _popen(command.c_str(), "r");
+    if (!pipe) {
+      error = "could not start curl; install curl and ensure it is on PATH";
+      return std::nullopt;
+    }
+    std::string response;
+    char buffer[4096];
+    while (std::fgets(buffer, sizeof(buffer), pipe) != nullptr)
+      response.append(buffer);
+    const int status = _pclose(pipe);
+    if (status != 0) {
+      error = response.empty() ? "HTTP request failed" : response;
+      return std::nullopt;
+    }
+    return response;
+  }
+#endif
 #if defined(__unix__) || defined(__APPLE__)
   static std::optional<std::string> curlRequest(const std::string &method, const std::string &url,
                                                 const std::optional<std::string> &body,
@@ -203,7 +263,7 @@ private:
                                          "--max-time",
                                          "30",
                                          "--user-agent",
-                                         "Kyma/0.2.1",
+                                         "Kyma/0.2.2",
                                          "--http1.1",
                                          "--request",
                                          method};

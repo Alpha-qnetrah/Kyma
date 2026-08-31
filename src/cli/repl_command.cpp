@@ -11,7 +11,7 @@ int runRepl(const Options &options, std::istream &input, std::ostream &output,
   auto session = std::make_unique<LanguageSession>(LanguageSessionOptions{options.modulePaths});
   std::string pending;
   std::string line;
-  output << "Kyma 0.2.1 REPL (:help for commands, :quit to exit)\n>> ";
+  output << "Kyma 0.2.2 REPL (:help for commands, :quit to exit)\n>> ";
   while (std::getline(input, line)) {
     if (pending.empty() && (line == ":quit" || line == ":q"))
       break;

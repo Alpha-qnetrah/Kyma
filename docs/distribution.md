@@ -17,7 +17,7 @@ Each archive contains the `kyma` executable, `README.md`, `LICENSE`, the languag
 The tagged release also contains `kyma-language-support-<version>.vsix`. Install it with:
 
 ```sh
-code --install-extension kyma-language-support-0.2.1.vsix --force
+code --install-extension kyma-language-support-<version>.vsix --force
 ```
 
 The VSIX includes the purple Kyma icon, light/dark file and command icons, syntax grammar, snippets, completion rules, examples, and the language/diagnostics/standard-library documentation. The black-and-white branding asset remains included as an alternate asset.
