@@ -376,6 +376,25 @@ int main() {
   assert(uncaughtResult.diagnostics.front().code == "KVM2301");
   assert(uncaughtResult.diagnostics.front().callFrames.size() == 2);
 
+  const auto caughtRuntimeSource = sources.add(
+      "caught-runtime-error",
+      "try { set impossible = 1 / 0; return 0; } "
+      "catch (failure) { return 42; }");
+  auto caughtRuntimeLexed = kyna::tokenize(*sources.find(caughtRuntimeSource));
+  auto caughtRuntimeParsed = kyna::parseModule(*sources.find(caughtRuntimeSource),
+                                                std::move(caughtRuntimeLexed.tokens));
+  auto caughtRuntimeHir =
+      kyna::lowerSyntaxToHir("caught-runtime-error", caughtRuntimeParsed.tree);
+  assert(caughtRuntimeHir.ok());
+  auto caughtRuntimeMir = kyna::lowerHirToMir(*caughtRuntimeHir.program);
+  assert(caughtRuntimeMir.ok());
+  auto caughtRuntimeModule = kyna::compileMirToBytecode(*caughtRuntimeMir.program);
+  assert(caughtRuntimeModule.ok());
+  const auto caughtRuntimeResult =
+      kyna::BytecodeVirtualMachine().execute(*caughtRuntimeModule.module);
+  assert(caughtRuntimeResult.ok());
+  assert(std::get<std::int64_t>(caughtRuntimeResult.value.data) == 42);
+
   kyna::BytecodeModule module;
   module.name = "arithmetic";
   module.constants = {std::int64_t{20}, std::int64_t{22}};

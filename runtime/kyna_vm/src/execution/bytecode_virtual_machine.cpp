@@ -122,6 +122,47 @@ BytecodeExecutionResult BytecodeVirtualMachine::execute(const BytecodeModule &mo
     }
     heap.maybeCollectRoots(roots);
   };
+  const auto unwindError = [&](ErrorObject *error, SourceSpan span)
+      -> std::optional<BytecodeExecutionResult> {
+    std::optional<std::size_t> handledFrame;
+    const BytecodeFunction::ExceptionHandler *matched = nullptr;
+    std::size_t faultInstruction = frames.back().instructionPointer;
+    for (std::size_t count = frames.size(); count > 0; --count) {
+      const auto frameIndex = count - 1;
+      const auto &candidateFunction = module.functions[frames[frameIndex].function];
+      for (const auto &handler : candidateFunction.exceptionHandlers)
+        if (faultInstruction >= handler.firstInstruction &&
+            faultInstruction - handler.firstInstruction < handler.instructionCount) {
+          handledFrame = frameIndex;
+          matched = &handler;
+          break;
+        }
+      if (handledFrame)
+        break;
+      if (frameIndex > 0)
+        faultInstruction = frames[frameIndex - 1].instructionPointer - 1;
+    }
+
+    if (!handledFrame) {
+      auto diagnostic = runtimeDiagnostic(error->code.empty() ? "KVM2301" : error->code,
+                                          error->message, span, module, frames);
+      if (!std::holds_alternative<std::nullptr_t>(error->cause.data))
+        diagnostic.notes.push_back("cause: " + error->cause.display());
+      diagnostic.help = "catch this error with 'try/catch' or fix the failing operation";
+      return BytecodeExecutionResult{{}, {std::move(diagnostic)}, heap.stats()};
+    }
+
+    frames.resize(*handledFrame + 1);
+    auto &handled = frames.back();
+    writeRegister(handled, matched->errorRegister, RuntimeValue(error));
+    handled.instructionPointer = matched->handlerInstruction;
+    collectAtSafepoint();
+    return std::nullopt;
+  };
+  const auto raise = [&](std::string code, std::string message, SourceSpan span,
+                         RuntimeValue cause = RuntimeValue()) {
+    return unwindError(heap.allocateError(std::move(message), std::move(code), cause), span);
+  };
 
   while (!frames.empty()) {
     auto &frame = frames.back();
@@ -178,18 +219,21 @@ BytecodeExecutionResult BytecodeVirtualMachine::execute(const BytecodeModule &mo
       if (const auto integer =
               std::get_if<std::int64_t>(&readRegister(frame, instruction.first).data)) {
         if (*integer == std::numeric_limits<std::int64_t>::min()) {
-          auto diagnostic = runtimeDiagnostic("KVM2005", "integer overflow while negating value",
-                                              instruction.span, module, frames);
-          diagnostic.help = "use a float value or keep the calculation within signed 64-bit range";
-          return {{}, {std::move(diagnostic)}};
+          if (auto failure = raise("KVM2005", "integer overflow while negating value",
+                                   instruction.span))
+            return *std::move(failure);
+          continue;
         }
         writeRegister(frame, instruction.destination, RuntimeValue(-*integer));
       } else if (const auto floating =
                      std::get_if<double>(&readRegister(frame, instruction.first).data))
         writeRegister(frame, instruction.destination, RuntimeValue(-*floating));
-      else
-        return {{}, {runtimeDiagnostic("KVM2002", "negate requires a numeric operand",
-                                       instruction.span, module, frames)}};
+      else {
+        if (auto failure = raise("KVM2002", "negate requires a numeric operand",
+                                 instruction.span))
+          return *std::move(failure);
+        continue;
+      }
       break;
     case OpCode::Equal:
       writeRegister(frame, instruction.destination,
@@ -223,19 +267,29 @@ BytecodeExecutionResult BytecodeVirtualMachine::execute(const BytecodeModule &mo
       bool leftInteger = false;
       bool rightInteger = false;
       if (!number(readRegister(frame, instruction.first), left, leftInteger) ||
-          !number(readRegister(frame, instruction.second), right, rightInteger))
-        return {{}, {runtimeDiagnostic("KVM2002", std::string(opcodeName(instruction.opcode)) +
-                                                        " requires numeric operands",
-                                         instruction.span, module, frames)}};
-      if (instruction.opcode == OpCode::Divide && right == 0.0)
-        return {{}, {runtimeDiagnostic("KVM2003", "division by zero", instruction.span, module,
-                                       frames)}};
-      if (instruction.opcode == OpCode::Remainder && (!leftInteger || !rightInteger))
-        return {{}, {runtimeDiagnostic("KVM2006", "remainder requires integer operands",
-                                       instruction.span, module, frames)}};
-      if (instruction.opcode == OpCode::Remainder && right == 0.0)
-        return {{}, {runtimeDiagnostic("KVM2007", "remainder by zero", instruction.span, module,
-                                       frames)}};
+          !number(readRegister(frame, instruction.second), right, rightInteger)) {
+        if (auto failure = raise("KVM2002", std::string(opcodeName(instruction.opcode)) +
+                                               " requires numeric operands",
+                                 instruction.span))
+          return *std::move(failure);
+        continue;
+      }
+      if (instruction.opcode == OpCode::Divide && right == 0.0) {
+        if (auto failure = raise("KVM2003", "division by zero", instruction.span))
+          return *std::move(failure);
+        continue;
+      }
+      if (instruction.opcode == OpCode::Remainder && (!leftInteger || !rightInteger)) {
+        if (auto failure = raise("KVM2006", "remainder requires integer operands",
+                                 instruction.span))
+          return *std::move(failure);
+        continue;
+      }
+      if (instruction.opcode == OpCode::Remainder && right == 0.0) {
+        if (auto failure = raise("KVM2007", "remainder by zero", instruction.span))
+          return *std::move(failure);
+        continue;
+      }
       switch (instruction.opcode) {
       case OpCode::Add:
       case OpCode::Subtract:
@@ -248,12 +302,12 @@ BytecodeExecutionResult BytecodeVirtualMachine::execute(const BytecodeModule &mo
           std::int64_t integerResult = 0;
           if (!checkedIntegerArithmetic(instruction.opcode, integerLeft, integerRight,
                                         integerResult)) {
-            auto diagnostic = runtimeDiagnostic(
-                "KVM2005", "integer overflow while evaluating '" +
-                               std::string(opcodeName(instruction.opcode)) + "'",
-                instruction.span, module, frames);
-            diagnostic.help = "use float values or keep the calculation within signed 64-bit range";
-            return {{}, {std::move(diagnostic)}};
+            if (auto failure = raise(
+                    "KVM2005", "integer overflow while evaluating '" +
+                                   std::string(opcodeName(instruction.opcode)) + "'",
+                    instruction.span))
+              return *std::move(failure);
+            continue;
           }
           writeRegister(frame, instruction.destination, RuntimeValue(integerResult));
         } else if (instruction.opcode == OpCode::Add)
@@ -340,34 +394,32 @@ BytecodeExecutionResult BytecodeVirtualMachine::execute(const BytecodeModule &mo
           targetFunction = (*closure)->function;
           calledCaptures = (*closure)->captures;
         } else {
-          auto diagnostic = runtimeDiagnostic(
-              "KVM2010",
-              "value of type '" + callee.typeName() +
-                  "' is not callable",
-              instruction.span, module, frames);
-          diagnostic.help = "call a function value or check the binding before invoking it";
-          return {{}, {std::move(diagnostic)}};
+          if (auto failure = raise("KVM2010", "value of type '" + callee.typeName() +
+                                                          "' is not callable",
+                                   instruction.span, callee))
+            return *std::move(failure);
+          continue;
         }
       }
       const auto &target = module.functions[targetFunction];
       const auto &arguments = module.callArguments[instruction.second];
       if (arguments.size() != target.parameterCount) {
-        auto diagnostic = runtimeDiagnostic(
-            "KVM2011", "function '" + target.name + "' expects " +
-                           std::to_string(target.parameterCount) + " argument(s), but " +
-                           std::to_string(arguments.size()) + " were provided",
-            instruction.span, module, frames);
-        diagnostic.help = "match the callable's declared parameter list";
-        return {{}, {std::move(diagnostic)}};
+        if (auto failure = raise("KVM2011", "function '" + target.name + "' expects " +
+                                                std::to_string(target.parameterCount) +
+                                                " argument(s), but " +
+                                                std::to_string(arguments.size()) +
+                                                " were provided",
+                                 instruction.span))
+          return *std::move(failure);
+        continue;
       }
       if (frames.size() >= MaximumCallFrames) {
-        auto diagnostic = runtimeDiagnostic(
-            "KVM2004", "maximum call depth of " + std::to_string(MaximumCallFrames) +
-                           " exceeded while calling '" + target.name +
-                           "'",
-            instruction.span, module, frames);
-        diagnostic.help = "check the recursive base case or rewrite the algorithm iteratively";
-        return {{}, {std::move(diagnostic)}};
+        if (auto failure = raise("KVM2004", "maximum call depth of " +
+                                                std::to_string(MaximumCallFrames) +
+                                                " exceeded while calling '" + target.name + "'",
+                                 instruction.span))
+          return *std::move(failure);
+        continue;
       }
       CallFrame called{targetFunction, std::vector<RuntimeValue>(target.registerCount), 0,
                        instruction.destination, instruction.span, std::move(calledCaptures),
@@ -386,40 +438,8 @@ BytecodeExecutionResult BytecodeVirtualMachine::execute(const BytecodeModule &mo
       else
         error = heap.allocateError(thrown.display(), "KVM2301", thrown);
 
-      std::optional<std::size_t> handledFrame;
-      const BytecodeFunction::ExceptionHandler *matched = nullptr;
-      std::size_t faultInstruction = frame.instructionPointer;
-      for (std::size_t count = frames.size(); count > 0; --count) {
-        const auto frameIndex = count - 1;
-        const auto &candidateFunction = module.functions[frames[frameIndex].function];
-        for (const auto &handler : candidateFunction.exceptionHandlers)
-          if (faultInstruction >= handler.firstInstruction &&
-              faultInstruction - handler.firstInstruction < handler.instructionCount) {
-            handledFrame = frameIndex;
-            matched = &handler;
-            break;
-          }
-        if (handledFrame)
-          break;
-        if (frameIndex > 0)
-          faultInstruction = frames[frameIndex - 1].instructionPointer - 1;
-      }
-
-      if (!handledFrame) {
-        auto diagnostic = runtimeDiagnostic(
-            error->code.empty() ? "KVM2301" : error->code,
-            "uncaught Error: " + error->message, instruction.span, module, frames);
-        if (!std::holds_alternative<std::nullptr_t>(error->cause.data))
-          diagnostic.notes.push_back("cause: " + error->cause.display());
-        diagnostic.help = "catch this error with 'try/catch' or allow it to terminate the program";
-        return {{}, {std::move(diagnostic)}, heap.stats()};
-      }
-
-      frames.resize(*handledFrame + 1);
-      auto &handled = frames.back();
-      writeRegister(handled, matched->errorRegister, RuntimeValue(error));
-      handled.instructionPointer = matched->handlerInstruction;
-      collectAtSafepoint();
+      if (auto failure = unwindError(error, instruction.span))
+        return *std::move(failure);
       continue;
     }
     case OpCode::Return: {
